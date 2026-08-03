@@ -23,6 +23,28 @@ describe('card evaluation', () => {
     expect(evaluateCard(card)).toEqual({ kind: 'exclusion', answer: 'mouse', answers: ['mouse'] })
   })
 
+  it('distinguishes gray-book and white-book exclusion answers', () => {
+    const grayBook = createCard(
+      { objectId: 'bottle', colorId: 'red' },
+      { objectId: 'book', colorId: 'gray' },
+    )
+    const whiteBook = createCard(
+      { objectId: 'bottle', colorId: 'red' },
+      { objectId: 'book', colorId: 'white' },
+    )
+
+    expect(evaluateCard(grayBook)).toEqual({
+      kind: 'exclusion',
+      answer: 'ghost',
+      answers: ['ghost'],
+    })
+    expect(evaluateCard(whiteBook)).toEqual({
+      kind: 'exclusion',
+      answer: 'mouse',
+      answers: ['mouse'],
+    })
+  })
+
   it('rejects a card with two direct answers (AC-03)', () => {
     const card = createCard(
       { objectId: 'ghost', colorId: 'white' },

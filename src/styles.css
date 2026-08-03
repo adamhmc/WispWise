@@ -621,24 +621,24 @@ button:focus-visible {
   user-select: none;
 }
 
-.object-glyph[data-recolored] img { filter: grayscale(1); }
+.object-glyph[data-recolored] img {
+  position: relative;
+  z-index: 2;
+  /* Collapse the source artwork to its darkest line work. Mid-tone source
+     colors become nearly white, so they no longer muddy white/gray cards. */
+  filter: grayscale(1) contrast(4) brightness(1.45);
+  mix-blend-mode: multiply;
+}
 
 .object-glyph[data-recolored]::after {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: var(--glyph-color);
   content: '';
   -webkit-mask: var(--glyph-image) center / contain no-repeat;
   mask: var(--glyph-image) center / contain no-repeat;
-  mix-blend-mode: color;
   pointer-events: none;
-}
-
-/* The ghost has a white body, so hue blending alone is too subtle. Multiplying
-   the solid card color through its full alpha mask colors the whole body while
-   preserving the dark outline, eyes, and mouth. */
-.object-glyph[data-object="ghost"][data-recolored]::after {
-  mix-blend-mode: multiply;
 }
 
 .object-glyph--large {
