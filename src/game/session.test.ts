@@ -1,0 +1,23 @@
+import { createGameSession } from './session'
+
+describe('game session creation', () => {
+  const random = { next: () => 0.25 }
+
+  it('creates a serializable 10-question session with a 5/5 split', () => {
+    const session = createGameSession({ id: 'session-1', explanationsEnabled: true, random })
+
+    expect(session.questions).toHaveLength(10)
+    expect(session.questions.filter(({ evaluation }) => evaluation.kind === 'direct')).toHaveLength(5)
+    expect(session.questions.filter(({ evaluation }) => evaluation.kind === 'exclusion')).toHaveLength(5)
+    expect(new Set(session.questions.map(({ card }) => card.id))).toHaveLength(10)
+    expect(session.records).toEqual([])
+    expect(() => JSON.stringify(session)).not.toThrow()
+  })
+
+  it('preserves the explanation preference in the session', () => {
+    expect(
+      createGameSession({ id: 'session-2', explanationsEnabled: false, random })
+        .explanationsEnabled,
+    ).toBe(false)
+  })
+})
