@@ -626,7 +626,7 @@ button:focus-visible {
   z-index: 2;
   /* Collapse the source artwork to its darkest line work. Mid-tone source
      colors become nearly white, so they no longer muddy white/gray cards. */
-  filter: grayscale(1) contrast(4) brightness(1.45);
+  filter: grayscale(1) brightness(3) contrast(5);
   mix-blend-mode: multiply;
 }
 
