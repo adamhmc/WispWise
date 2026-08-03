@@ -1,6 +1,7 @@
 import { DEFAULT_PREFERENCES } from '@/game'
 import {
   LocalStoragePreferenceStore,
+  LEGACY_PREFERENCE_STORAGE_KEY,
   PREFERENCE_STORAGE_KEY,
   type StorageLike,
 } from './local-storage-preference-store'
@@ -35,6 +36,16 @@ describe('LocalStoragePreferenceStore', () => {
     store.save(preferences)
 
     expect(store.load()).toEqual(preferences)
+  })
+
+  it('loads preferences saved under the pre-rename storage key', () => {
+    const preferences = { muted: true, explanationsEnabled: false, tutorialCompleted: true }
+    const storage: StorageLike = {
+      getItem: (key) => key === LEGACY_PREFERENCE_STORAGE_KEY ? JSON.stringify(preferences) : null,
+      setItem: vi.fn(),
+    }
+
+    expect(new LocalStoragePreferenceStore(storage).load()).toEqual(preferences)
   })
 
   it('merges partial data with defaults and ignores unrelated values', () => {

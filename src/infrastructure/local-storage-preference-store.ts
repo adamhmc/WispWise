@@ -1,7 +1,8 @@
 import { DEFAULT_PREFERENCES, type Preferences } from '@/game/preferences'
 import type { PreferenceStore } from '@/ports/preference-store'
 
-export const PREFERENCE_STORAGE_KEY = 'geesten.preferences.v1'
+export const PREFERENCE_STORAGE_KEY = 'wispwise.preferences.v1'
+export const LEGACY_PREFERENCE_STORAGE_KEY = 'geesten.preferences.v1'
 
 export interface StorageLike {
   getItem(key: string): string | null
@@ -43,7 +44,11 @@ export class LocalStoragePreferenceStore implements PreferenceStore {
 
   load(): Preferences {
     try {
-      return parsePreferences(this.storage.getItem(PREFERENCE_STORAGE_KEY))
+      const current = this.storage.getItem(PREFERENCE_STORAGE_KEY)
+      const legacy = current === null
+        ? this.storage.getItem(LEGACY_PREFERENCE_STORAGE_KEY)
+        : null
+      return parsePreferences(current ?? legacy)
     } catch {
       return DEFAULT_PREFERENCES
     }

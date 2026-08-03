@@ -33,9 +33,9 @@ export function GameScreen({ state, onAnswer, onNext, onExit }: GameScreenProps)
           <span className="brand-ghost" aria-hidden="true">
             <span className="brand-ghost__eyes">••</span>
           </span>
-          <span className="brand-name"><small>幽靈主題</small>靈感快手</span>
+          <span className="brand-name"><small>WispWise</small>靈機一選</span>
         </button>
-        <div className="game-title" aria-hidden="true"><small>THE GAME OF</small> QUICK THINK!</div>
+        <div className="game-title" aria-hidden="true"><small>LOOK · THINK · PICK</small> WISPWISE!</div>
         <div className="game-header__progress" aria-label={`第 ${state.questionIndex + 1} 題，共 10 題`}>
           <span>第 {state.questionIndex + 1} 題</span>
           <span className="progress-track" aria-hidden="true">

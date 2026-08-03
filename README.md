@@ -1,6 +1,6 @@
-# Geesten Web Game
+# 靈機一選 WispWise
 
-Mobile-friendly single-player Geesten-inspired game built with React, TypeScript, and Vite. It includes a balanced 10-card round, first-play interactive tutorial, explanations, preferences, timing, results, and original object art.
+Mobile-friendly observation and deduction game built with React, TypeScript, and Vite. It includes a balanced 10-card round, first-play interactive tutorial, explanations, preferences, timing, results, and original object art.
 
 ## Local development
 

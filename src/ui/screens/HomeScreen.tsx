@@ -11,8 +11,8 @@ export function HomeScreen({ onStart, onOpenRules, onOpenSettings }: HomeScreenP
         <div className="brand-lockup">
           <span className="brand-ghost" aria-hidden="true">●</span>
           <div>
-            <p className="eyebrow">Geesten</p>
-            <h1>閃靈快手</h1>
+            <p className="eyebrow">WispWise</p>
+            <h1>靈機一選</h1>
           </div>
         </div>
         <p className="home-screen__lead">看清楚卡牌，用最快的直覺找出唯一答案。</p>

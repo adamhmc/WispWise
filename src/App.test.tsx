@@ -7,7 +7,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: '閃靈快手' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '靈機一選' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '開始遊戲' }))
 
     expect(screen.getByRole('heading', { name: '先找直接匹配' })).toBeTruthy()
@@ -37,7 +37,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '設定' }))
     await user.click(screen.getByRole('checkbox', { name: /答題解說/ }))
 
-    expect(window.localStorage.getItem('geesten.preferences.v1')).toContain('"explanationsEnabled":false')
+    expect(window.localStorage.getItem('wispwise.preferences.v1')).toContain('"explanationsEnabled":false')
     expect(screen.queryByText(/歷史戰績/)).toBeNull()
   })
 })

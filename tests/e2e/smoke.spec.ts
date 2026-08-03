@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-test('loads the Geesten application shell', async ({ page }) => {
+test('loads the WispWise application shell', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: '閃靈快手' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '靈機一選' })).toBeVisible()
 })
 
 test('enters first-play tutorial and locks answers after one choice', async ({ page }) => {
