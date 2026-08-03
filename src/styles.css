@@ -628,9 +628,17 @@ button:focus-visible {
   inset: 0;
   background: var(--glyph-color);
   content: '';
+  -webkit-mask: var(--glyph-image) center / contain no-repeat;
   mask: var(--glyph-image) center / contain no-repeat;
   mix-blend-mode: color;
   pointer-events: none;
+}
+
+/* The ghost has a white body, so hue blending alone is too subtle. Multiplying
+   the solid card color through its full alpha mask colors the whole body while
+   preserving the dark outline, eyes, and mouth. */
+.object-glyph[data-object="ghost"][data-recolored]::after {
+  mix-blend-mode: multiply;
 }
 
 .object-glyph--large {

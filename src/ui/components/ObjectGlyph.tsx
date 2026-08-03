@@ -22,6 +22,7 @@ export function ObjectGlyph({
   return (
     <span
       className={`object-glyph object-glyph--${size}`}
+      data-object={objectId}
       data-recolored={isCanonicalColor ? undefined : true}
       style={{
         '--glyph-color': color.value,
