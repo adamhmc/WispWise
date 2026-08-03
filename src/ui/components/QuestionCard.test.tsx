@@ -12,7 +12,7 @@ describe('QuestionCard', () => {
     render(<QuestionCard card={card} />)
 
     expect(screen.getByRole('article', { name: '題目卡' })).toBeTruthy()
-    expect(screen.getByRole('img', { name: '藍色圓形' })).toBeTruthy()
-    expect(screen.getByRole('img', { name: '紅色正方形' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: '藍色鬼' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: '紅色瓶子' })).toBeTruthy()
   })
 })

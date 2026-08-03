@@ -2,13 +2,13 @@ import type { ColorId, ObjectId } from '@/domain'
 
 export const PHASE_ONE_OBJECTS: Record<
   ObjectId,
-  { readonly label: string; readonly shape: 'circle' | 'triangle' | 'square' | 'star' | 'hexagon' }
+  { readonly label: string }
 > = {
-  ghost: { label: '圓形', shape: 'circle' },
-  chair: { label: '三角形', shape: 'triangle' },
-  bottle: { label: '正方形', shape: 'square' },
-  book: { label: '星形', shape: 'star' },
-  mouse: { label: '六角形', shape: 'hexagon' },
+  ghost: { label: '鬼' },
+  chair: { label: '椅子' },
+  bottle: { label: '瓶子' },
+  book: { label: '書' },
+  mouse: { label: '老鼠' },
 }
 
 export const COLOR_PRESENTATION: Record<ColorId, { readonly label: string; readonly value: string }> = {

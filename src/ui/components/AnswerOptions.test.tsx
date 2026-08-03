@@ -11,7 +11,7 @@ describe('AnswerOptions', () => {
     const buttons = screen.getAllByRole('button')
     expect(buttons).toHaveLength(5)
 
-    await user.click(screen.getByRole('button', { name: '選擇圓形' }))
+    await user.click(screen.getByRole('button', { name: '選擇鬼' }))
     expect(onSelect).toHaveBeenCalledWith('ghost')
   })
 
@@ -20,10 +20,24 @@ describe('AnswerOptions', () => {
     const onSelect = vi.fn()
     render(<AnswerOptions disabled selectedAnswer="chair" onSelect={onSelect} />)
 
-    expect(screen.getByRole('button', { name: '選擇三角形' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: '選擇椅子' }).getAttribute('aria-pressed')).toBe(
       'true',
     )
-    await user.click(screen.getByRole('button', { name: '選擇三角形' }))
+    await user.click(screen.getByRole('button', { name: '選擇椅子' }))
     expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('shows both correct and incorrect outcomes without relying on color alone', () => {
+    render(
+      <AnswerOptions
+        disabled
+        selectedAnswer="chair"
+        correctAnswer="ghost"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '選擇鬼' }).dataset.status).toBe('correct')
+    expect(screen.getByRole('button', { name: '選擇椅子' }).dataset.status).toBe('incorrect')
   })
 })

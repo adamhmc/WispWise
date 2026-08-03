@@ -5,10 +5,11 @@ import { ObjectGlyph } from './ObjectGlyph'
 interface AnswerOptionsProps {
   readonly disabled: boolean
   readonly selectedAnswer?: ObjectId
+  readonly correctAnswer?: ObjectId
   readonly onSelect: (objectId: ObjectId) => void
 }
 
-export function AnswerOptions({ disabled, selectedAnswer, onSelect }: AnswerOptionsProps) {
+export function AnswerOptions({ disabled, selectedAnswer, correctAnswer, onSelect }: AnswerOptionsProps) {
   return (
     <section className="answer-panel" aria-labelledby="answer-options-title">
       <div className="answer-panel__heading">
@@ -19,11 +20,17 @@ export function AnswerOptions({ disabled, selectedAnswer, onSelect }: AnswerOpti
         {CATALOG.map(({ objectId, fixedColorId }, index) => {
           const presentation = PHASE_ONE_OBJECTS[objectId]
           const selected = selectedAnswer === objectId
+          const status = correctAnswer === objectId
+            ? 'correct'
+            : selected && correctAnswer
+              ? 'incorrect'
+              : undefined
 
           return (
             <button
               className="answer-option"
               data-selected={selected || undefined}
+              data-status={status}
               disabled={disabled}
               key={objectId}
               type="button"
@@ -36,6 +43,11 @@ export function AnswerOptions({ disabled, selectedAnswer, onSelect }: AnswerOpti
                 <ObjectGlyph objectId={objectId} colorId={fixedColorId} decorative />
               </span>
               <span className="answer-option__label">{presentation.label}</span>
+              {status ? (
+                <span className="answer-option__result" aria-hidden="true">
+                  {status === 'correct' ? '✓' : '×'}
+                </span>
+              ) : null}
             </button>
           )
         })}

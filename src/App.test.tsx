@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { App } from './App'
 
 describe('App', () => {
-  it('starts a game and accepts exactly one answer', async () => {
+  it('opens the first-play tutorial and accepts exactly one answer', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     expect(screen.getByRole('heading', { name: '閃靈快手' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '開始遊戲' }))
 
+    expect(screen.getByRole('heading', { name: '先找直接匹配' })).toBeTruthy()
     expect(await screen.findByRole('article', { name: '題目卡' })).toBeTruthy()
     const answerButtons = screen.getAllByRole('button', { name: /選擇/ })
     expect(answerButtons).toHaveLength(5)
@@ -19,13 +20,24 @@ describe('App', () => {
     expect(answerButtons.every((button) => button.hasAttribute('disabled'))).toBe(true)
   })
 
-  it('opens and closes the provisional utility screens', async () => {
+  it('opens and closes the complete rules screen', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: '玩法說明' }))
-    expect(screen.getByRole('heading', { name: '兩種判斷方式' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '找出唯一正解' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '回首頁' }))
     expect(screen.getByRole('button', { name: '開始遊戲' })).toBeTruthy()
+  })
+
+  it('persists preferences but does not expose history controls', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: '設定' }))
+    await user.click(screen.getByRole('checkbox', { name: /答題解說/ }))
+
+    expect(window.localStorage.getItem('geesten.preferences.v1')).toContain('"explanationsEnabled":false')
+    expect(screen.queryByText(/歷史戰績/)).toBeNull()
   })
 })

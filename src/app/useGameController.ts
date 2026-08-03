@@ -11,6 +11,7 @@ import {
   browserClock,
   browserRandomSource,
   browserTimer,
+  BrowserAudioCuePlayer,
   LocalStoragePreferenceStore,
 } from '@/infrastructure'
 
@@ -22,6 +23,8 @@ export function useGameController() {
   )
   const [preferences, setPreferencesState] = useState<Preferences>(() => preferenceStore.load())
   const sessionCounter = useRef(0)
+  const lastAudioRecordCount = useRef(0)
+  const audioCuePlayer = useMemo(() => new BrowserAudioCuePlayer(), [])
   const autoAdvance = useMemo(
     () => new AutoAdvanceController(browserTimer, dispatch),
     [],
@@ -37,10 +40,12 @@ export function useGameController() {
   }, [preferences.explanationsEnabled])
 
   const startGame = useCallback(() => {
+    lastAudioRecordCount.current = 0
     dispatch({ type: 'START_GAME', session: createFreshSession() })
   }, [createFreshSession])
 
   const restartGame = useCallback(() => {
+    lastAudioRecordCount.current = 0
     dispatch({ type: 'RESTART_GAME', session: createFreshSession() })
   }, [createFreshSession])
 
@@ -65,6 +70,14 @@ export function useGameController() {
   useEffect(() => {
     autoAdvance.sync(state)
   }, [autoAdvance, state])
+
+  useEffect(() => {
+    if (state.status !== 'feedback') return
+    if (state.session.records.length <= lastAudioRecordCount.current) return
+
+    lastAudioRecordCount.current = state.session.records.length
+    if (!preferences.muted) audioCuePlayer.play(state.answer.isCorrect ? 'correct' : 'incorrect')
+  }, [audioCuePlayer, preferences.muted, state])
 
   useEffect(() => () => autoAdvance.dispose(), [autoAdvance])
 
