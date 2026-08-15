@@ -20,9 +20,9 @@ describe('AnswerOptions', () => {
     const onSelect = vi.fn()
     render(<AnswerOptions disabled selectedAnswer="chair" onSelect={onSelect} />)
 
-    expect(screen.getByRole('button', { name: '選擇椅子' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    )
+    const selected = screen.getByRole('button', { name: '選擇椅子' })
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.querySelector('[data-selection-confirmed]')?.textContent).toBe('✓')
     await user.click(screen.getByRole('button', { name: '選擇椅子' }))
     expect(onSelect).not.toHaveBeenCalled()
   })

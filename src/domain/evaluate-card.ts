@@ -1,7 +1,6 @@
-import { getFixedColor } from './catalog'
-import type { Card } from './card'
 import { CATALOG } from './catalog'
-import type { ObjectId } from './types'
+import type { Card } from './card'
+import type { CatalogItem, ObjectId } from './types'
 
 export type ValidCardKind = 'direct' | 'exclusion'
 export type InvalidCardReason = 'no-answer' | 'multiple-answer'
@@ -20,17 +19,27 @@ export interface InvalidCardEvaluation {
 
 export type CardEvaluation = ValidCardEvaluation | InvalidCardEvaluation
 
-export function findDirectMatches(card: Card): ObjectId[] {
+function fixedColorIn(catalog: readonly CatalogItem[], objectId: ObjectId) {
+  return catalog.find((item) => item.objectId === objectId)?.fixedColorId
+}
+
+export function findDirectMatches(
+  card: Card,
+  catalog: readonly CatalogItem[] = CATALOG,
+): ObjectId[] {
   return [card.left, card.right]
-    .filter(({ objectId, colorId }) => getFixedColor(objectId) === colorId)
+    .filter(({ objectId, colorId }) => fixedColorIn(catalog, objectId) === colorId)
     .map(({ objectId }) => objectId)
 }
 
-export function findExclusionCandidates(card: Card): ObjectId[] {
+export function findExclusionCandidates(
+  card: Card,
+  catalog: readonly CatalogItem[] = CATALOG,
+): ObjectId[] {
   const shownObjects = new Set([card.left.objectId, card.right.objectId])
   const shownColors = new Set([card.left.colorId, card.right.colorId])
 
-  return CATALOG.filter(
+  return catalog.filter(
     ({ objectId, fixedColorId }) =>
       !shownObjects.has(objectId) && !shownColors.has(fixedColorId),
   ).map(({ objectId }) => objectId)
@@ -44,8 +53,11 @@ function invalidEvaluation(answers: readonly ObjectId[]): InvalidCardEvaluation 
   }
 }
 
-export function evaluateCard(card: Card): CardEvaluation {
-  const directMatches = findDirectMatches(card)
+export function evaluateCard(
+  card: Card,
+  catalog: readonly CatalogItem[] = CATALOG,
+): CardEvaluation {
+  const directMatches = findDirectMatches(card, catalog)
 
   if (directMatches.length === 1) {
     const answer = directMatches[0]
@@ -56,7 +68,7 @@ export function evaluateCard(card: Card): CardEvaluation {
     return invalidEvaluation(directMatches)
   }
 
-  const exclusionCandidates = findExclusionCandidates(card)
+  const exclusionCandidates = findExclusionCandidates(card, catalog)
 
   if (exclusionCandidates.length === 1) {
     const answer = exclusionCandidates[0]

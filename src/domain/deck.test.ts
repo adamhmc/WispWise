@@ -1,3 +1,4 @@
+import { WISPWISE_THEME } from './theme'
 import { buildCompleteDeck, generateCandidateCards } from './deck'
 
 describe('complete deck generation', () => {
@@ -6,6 +7,15 @@ describe('complete deck generation', () => {
 
     expect(candidates).toHaveLength(200)
     expect(new Set(candidates.map(({ id }) => id))).toHaveLength(200)
+  })
+
+  it('derives the candidate space from the supplied theme definition', () => {
+    const threeObjectTheme = {
+      colors: WISPWISE_THEME.colors.slice(0, 3),
+      objects: WISPWISE_THEME.objects.slice(0, 3),
+    }
+
+    expect(generateCandidateCards(threeObjectTheme)).toHaveLength(18)
   })
 
   it('classifies the complete candidate space as 60 direct, 60 exclusion, 80 invalid', () => {

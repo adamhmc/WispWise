@@ -1,8 +1,10 @@
-export const OBJECT_IDS = ['ghost', 'chair', 'bottle', 'book', 'mouse'] as const
-export const COLOR_IDS = ['white', 'red', 'green', 'blue', 'gray'] as const
+import { WISPWISE_THEME } from './theme'
 
-export type ObjectId = (typeof OBJECT_IDS)[number]
-export type ColorId = (typeof COLOR_IDS)[number]
+export type ObjectId = (typeof WISPWISE_THEME.objects)[number]['objectId']
+export type ColorId = (typeof WISPWISE_THEME.colors)[number]['colorId']
+
+export const OBJECT_IDS = WISPWISE_THEME.objects.map(({ objectId }) => objectId) as readonly ObjectId[]
+export const COLOR_IDS = WISPWISE_THEME.colors.map(({ colorId }) => colorId) as readonly ColorId[]
 
 export interface CatalogItem {
   readonly objectId: ObjectId

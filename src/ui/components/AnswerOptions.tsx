@@ -1,5 +1,4 @@
 import { CATALOG, type ObjectId } from '@/domain'
-import { PHASE_ONE_OBJECTS } from '@/ui/presentation'
 import { ObjectGlyph } from './ObjectGlyph'
 
 interface AnswerOptionsProps {
@@ -17,8 +16,7 @@ export function AnswerOptions({ disabled, selectedAnswer, correctAnswer, onSelec
         <span className="answer-panel__hint">每題只能選一次</span>
       </div>
       <div className="answer-options">
-        {CATALOG.map(({ objectId, fixedColorId }, index) => {
-          const presentation = PHASE_ONE_OBJECTS[objectId]
+        {CATALOG.map(({ objectId, fixedColorId, label }, index) => {
           const selected = selectedAnswer === objectId
           const status = correctAnswer === objectId
             ? 'correct'
@@ -36,16 +34,20 @@ export function AnswerOptions({ disabled, selectedAnswer, correctAnswer, onSelec
               type="button"
               onClick={() => onSelect(objectId)}
               aria-pressed={selected}
-              aria-label={`選擇${presentation.label}`}
+              aria-label={`選擇${label}`}
             >
               <span className="answer-option__number" aria-hidden="true">{index + 1}</span>
               <span className="answer-option__disc">
                 <ObjectGlyph objectId={objectId} colorId={fixedColorId} decorative />
               </span>
-              <span className="answer-option__label">{presentation.label}</span>
-              {status ? (
-                <span className="answer-option__result" aria-hidden="true">
-                  {status === 'correct' ? '✓' : '×'}
+              <span className="answer-option__label">{label}</span>
+              {status || selected ? (
+                <span
+                  className="answer-option__result"
+                  data-selection-confirmed={selected && !status ? true : undefined}
+                  aria-hidden="true"
+                >
+                  {status === 'incorrect' ? '×' : '✓'}
                 </span>
               ) : null}
             </button>

@@ -9,6 +9,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: '靈機一選' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '開始遊戲' }))
+    await user.click(screen.getByRole('button', { name: /單人遊戲/ }))
 
     expect(screen.getByRole('heading', { name: '先找直接匹配' })).toBeTruthy()
     expect(await screen.findByRole('article', { name: '題目卡' })).toBeTruthy()
@@ -28,6 +29,19 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: '找出唯一正解' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '回首頁' }))
     expect(screen.getByRole('button', { name: '開始遊戲' })).toBeTruthy()
+  })
+
+  it('navigates from game mode to multiplayer role selection', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: '開始遊戲' }))
+    expect(screen.getByRole('heading', { name: '選擇遊戲模式' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /多人遊戲/ }))
+    expect(screen.getByRole('heading', { name: '多人遊戲' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /擔任 Host/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /加入房間/ })).toBeTruthy()
   })
 
   it('persists preferences but does not expose history controls', async () => {
