@@ -39,7 +39,7 @@ function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
   }
 }
 
-const handlers = { onAnswer: vi.fn(), onAdvance: vi.fn(), onExit: vi.fn() }
+const handlers = { onAnswer: vi.fn(), onAdvance: vi.fn(), onRematch: vi.fn(), onExit: vi.fn() }
 
 describe('MultiplayerGameScreen', () => {
   it('shows the question and player answer progress on the Host', () => {
@@ -168,5 +168,22 @@ describe('MultiplayerGameScreen', () => {
     const ranking = screen.getByRole('list').textContent ?? ''
     expect(ranking.indexOf('Ada')).toBeLessThan(ranking.indexOf('Lin'))
     expect(screen.getByRole('heading', { name: '最終排名' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '再玩一局' })).toBeTruthy()
+  })
+
+  it('asks players to wait for the Host after the final ranking', () => {
+    render(
+      <MultiplayerGameScreen
+        role="player"
+        actorId="p1"
+        connectionStatus="connected"
+        snapshot={{ ...snapshot('results'), phase: 'finished' }}
+        snapshotReceivedAtMs={Date.now()}
+        error={null}
+        {...handlers}
+      />,
+    )
+    expect(screen.getByText('等待 Host 決定是否再玩一局…')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '再玩一局' })).toBeNull()
   })
 })

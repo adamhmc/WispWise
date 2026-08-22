@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import type { PublicRoomSnapshot } from '@/multiplayer'
+import { QRCodeSVG } from 'qrcode.react'
+import { createRoomInviteUrl, type PublicRoomSnapshot } from '@/multiplayer'
 
 interface MultiplayerLobbyScreenProps {
   readonly entryMode: 'create' | 'join'
+  readonly initialRoomCode?: string
   readonly role: 'host' | 'player' | null
   readonly connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected'
   readonly startPending: boolean
@@ -17,6 +19,7 @@ interface MultiplayerLobbyScreenProps {
 
 export function MultiplayerLobbyScreen({
   entryMode,
+  initialRoomCode = '',
   role,
   connectionStatus,
   startPending,
@@ -28,12 +31,23 @@ export function MultiplayerLobbyScreen({
   onAutoAdvanceChange,
   onBack,
 }: MultiplayerLobbyScreenProps) {
-  const [roomCode, setRoomCode] = useState('')
+  const [roomCode, setRoomCode] = useState(initialRoomCode)
   const [nickname, setNickname] = useState('')
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const inviteUrl = snapshot ? createRoomInviteUrl(window.location.href, snapshot.roomCode) : ''
 
   const submitJoin = (event: FormEvent) => {
     event.preventDefault()
     onJoin(roomCode.trim().toUpperCase(), nickname.trim())
+  }
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('failed')
+    }
   }
 
   if (!snapshot) {
@@ -72,6 +86,19 @@ export function MultiplayerLobbyScreen({
         <p className="eyebrow">WispWise 多人模式</p>
         <h1>{role === 'host' ? '房間已建立' : '等待 Host 開始'}</h1>
         <div className="room-code-block"><span>房間代碼</span><strong>{snapshot.roomCode}</strong><small>請其他玩家在手機上輸入此代碼</small></div>
+        {role === 'host' && (
+          <section className="room-invite" aria-labelledby="room-invite-title">
+            <QRCodeSVG value={inviteUrl} size={168} level="M" marginSize={2} aria-label="加入房間 QR Code" />
+            <div>
+              <h2 id="room-invite-title">掃描加入房間</h2>
+              <p>玩家掃描 QR Code，或開啟邀請連結後輸入暱稱。</p>
+              <button className="compact-button" type="button" onClick={() => void copyInvite()}>
+                {copyStatus === 'copied' ? '已複製連結' : '複製加入連結'}
+              </button>
+              {copyStatus === 'failed' && <small role="alert">無法自動複製，請改用 QR Code。</small>}
+            </div>
+          </section>
+        )}
         <div className="connection-pill" data-status={connectionStatus}>{connectionStatus === 'connected' ? '● 已連線' : '○ 連線中斷'}</div>
         <div className="player-roster">
           <div className="player-roster__header"><h2>已加入玩家</h2><span>{snapshot.players.length} / 8</span></div>

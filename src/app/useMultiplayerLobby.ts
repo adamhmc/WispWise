@@ -230,6 +230,16 @@ export function useMultiplayerLobby() {
     socketRef.current.send(JSON.stringify({ type: 'advance-round' }))
   }
 
+  const resetGame = () => {
+    setError(null)
+    if (role !== 'host' || snapshot?.phase !== 'finished' || snapshot.finishReason !== 'completed') return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    socketRef.current.send(JSON.stringify({ type: 'reset-game' }))
+  }
+
   const reset = () => {
     shouldReconnectRef.current = false
     connectionGenerationRef.current += 1
@@ -268,6 +278,7 @@ export function useMultiplayerLobby() {
     setAutoAdvanceEnabled,
     submitAnswer,
     advanceRound,
+    resetGame,
     reset,
   }
 }

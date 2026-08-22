@@ -27,6 +27,11 @@ describe('MultiplayerLobbyScreen', () => {
     expect(onJoin).toHaveBeenCalledWith('WISP42', 'Ada')
   })
 
+  it('prefills a room code supplied by an invite link', () => {
+    render(<MultiplayerLobbyScreen {...baseProps} initialRoomCode="WISP42" />)
+    expect(screen.getByLabelText<HTMLInputElement>('房間代碼').value).toBe('WISP42')
+  })
+
   it('shows the roster and enables start for a connected host with players', () => {
     render(
       <MultiplayerLobbyScreen
@@ -48,6 +53,8 @@ describe('MultiplayerLobbyScreen', () => {
     )
     expect(screen.getByText('WISP42')).toBeTruthy()
     expect(screen.getByText('Ada')).toBeTruthy()
+    expect(screen.getByLabelText('加入房間 QR Code')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '複製加入連結' })).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '開始 10 題挑戰' }).disabled).toBe(false)
   })
 

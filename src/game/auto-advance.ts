@@ -1,7 +1,8 @@
-import type { TimerPort } from '@/ports'
+import type { Clock, TimerPort } from '@/ports'
 import type { GameEvent, GameState } from './state'
 
 export const AUTO_ADVANCE_DELAY_MS = 1_200
+export const TIMED_AUTO_ADVANCE_DELAY_MS = 600
 
 export class AutoAdvanceController {
   private handle: unknown
@@ -10,6 +11,7 @@ export class AutoAdvanceController {
   constructor(
     private readonly timer: TimerPort,
     private readonly dispatch: (event: GameEvent) => void,
+    private readonly clock: Clock = { now: () => Date.now() },
   ) {}
 
   sync(state: GameState): void {
@@ -28,8 +30,10 @@ export class AutoAdvanceController {
     this.handle = this.timer.schedule(() => {
       this.handle = undefined
       this.activeKey = null
-      this.dispatch({ type: 'AUTO_ADVANCE' })
-    }, AUTO_ADVANCE_DELAY_MS)
+      this.dispatch({ type: 'AUTO_ADVANCE', nowMs: this.clock.now() })
+    }, state.status === 'feedback' && state.session.mode === 'timed'
+      ? TIMED_AUTO_ADVANCE_DELAY_MS
+      : AUTO_ADVANCE_DELAY_MS)
   }
 
   dispose(): void {

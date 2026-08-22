@@ -227,6 +227,48 @@ describe('multiplayer room', () => {
     expect(state).toMatchObject({ phase: 'finished', finishReason: 'completed' })
   })
 
+  it('lets the host return connected players to the lobby for a rematch', () => {
+    const replacementQuestions = buildCompleteDeck().legal.slice(10, 12)
+    const finished: RoomState = {
+      ...roomWithPlayers(2),
+      phase: 'finished',
+      finishReason: 'completed',
+      roundIndex: 1,
+      players: roomWithPlayers(2).players.map((player, index) => ({
+        ...player,
+        connected: index === 0,
+        score: 2_000,
+        correctElapsedTotalMs: 1_500,
+      })),
+    }
+
+    expect(transitionRoom(finished, {
+      type: 'reset-game',
+      actorId: 'player-1',
+      questions: replacementQuestions,
+    })).toMatchObject({ ok: false, reason: 'Only the host can reset' })
+
+    const reset = transitionRoom(finished, {
+      type: 'reset-game',
+      actorId: 'host-1',
+      questions: replacementQuestions,
+    })
+    if (!reset.ok) throw new Error(reset.reason)
+    expect(reset.state).toMatchObject({
+      phase: 'lobby',
+      roundIndex: -1,
+      finishReason: undefined,
+      questions: replacementQuestions,
+    })
+    expect(reset.state.players).toHaveLength(1)
+    expect(reset.state.players[0]).toMatchObject({
+      id: 'player-1',
+      score: 0,
+      correctElapsedTotalMs: 0,
+    })
+    expect(reset.state.submissions).toEqual([])
+  })
+
   it('pauses for a disconnected host, restores the round clock on reconnect, and expires at 30s', () => {
     const playing = start(roomWithPlayers(1), 10_000)
     const disconnected = transitionRoom(playing, {

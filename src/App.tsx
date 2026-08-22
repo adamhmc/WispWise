@@ -11,35 +11,48 @@ import { RulesScreen } from '@/ui/screens/RulesScreen'
 import { SettingsScreen } from '@/ui/screens/SettingsScreen'
 import { TutorialScreen } from '@/ui/screens/TutorialScreen'
 import { preloadGameAssets } from '@/ui/assets'
+import { clearRoomInviteFromUrl, invitedRoomCodeFromUrl } from '@/multiplayer'
+import type { GameMode } from '@/game'
 
 type UtilityView = 'rules' | 'settings' | 'tutorial' | null
 
 export function App() {
+  const invitedRoomCode = invitedRoomCodeFromUrl(window.location.href)
   const game = useGameController()
   const multiplayer = useMultiplayerLobby()
   const [utilityView, setUtilityView] = useState<UtilityView>(null)
-  const [modeView, setModeView] = useState<'game-mode' | 'multiplayer-role' | null>(null)
-  const [multiplayerEntry, setMultiplayerEntry] = useState<'create' | 'join' | null>(null)
-  const [startAfterTutorial, setStartAfterTutorial] = useState(false)
+  const [modeView, setModeView] = useState<'game-mode' | 'solo-mode' | 'multiplayer-role' | null>(null)
+  const [multiplayerEntry, setMultiplayerEntry] = useState<'create' | 'join' | null>(
+    invitedRoomCode ? 'join' : null,
+  )
+  const [startAfterTutorial, setStartAfterTutorial] = useState<GameMode | null>(null)
 
   useEffect(() => {
     preloadGameAssets()
   }, [])
 
-  const requestStart = () => {
+  const requestStart = (mode: GameMode) => {
     if (!game.preferences.tutorialCompleted) {
-      setStartAfterTutorial(true)
+      setStartAfterTutorial(mode)
       setUtilityView('tutorial')
       return
     }
-    game.startGame()
+    game.startGame(mode)
   }
 
   const finishTutorial = () => {
     game.setPreferences({ ...game.preferences, tutorialCompleted: true })
     setUtilityView(null)
-    if (startAfterTutorial) game.startGame()
-    setStartAfterTutorial(false)
+    if (startAfterTutorial) game.startGame(startAfterTutorial)
+    setStartAfterTutorial(null)
+  }
+
+  const leaveMultiplayer = () => {
+    multiplayer.reset()
+    setMultiplayerEntry(null)
+    if (invitedRoomCodeFromUrl(window.location.href)) {
+      window.history.replaceState(null, '', clearRoomInviteFromUrl(window.location.href))
+    }
   }
 
   if (game.state.status === 'preparing' || game.state.status === 'answering' || game.state.status === 'feedback') {
@@ -54,22 +67,24 @@ export function App() {
   }
 
   if (game.state.status === 'results') {
-    return <ResultsScreen stats={game.state.stats} onRestart={game.restartGame} onHome={game.exitGame} />
+    return <ResultsScreen mode={game.state.session.mode} stats={game.state.stats} onRestart={game.restartGame} onHome={game.exitGame} />
   }
 
   if (utilityView === 'tutorial') return <TutorialScreen onComplete={finishTutorial} onSkip={finishTutorial} />
-  if (utilityView === 'rules') return <RulesScreen onTutorial={() => { setStartAfterTutorial(false); setUtilityView('tutorial') }} onBack={() => setUtilityView(null)} />
-  if (utilityView === 'settings') return <SettingsScreen preferences={game.preferences} onChange={game.setPreferences} onTutorial={() => { setStartAfterTutorial(false); setUtilityView('tutorial') }} onBack={() => setUtilityView(null)} />
+  if (utilityView === 'rules') return <RulesScreen onTutorial={() => { setStartAfterTutorial(null); setUtilityView('tutorial') }} onBack={() => setUtilityView(null)} />
+  if (utilityView === 'settings') return <SettingsScreen preferences={game.preferences} onChange={game.setPreferences} onTutorial={() => { setStartAfterTutorial(null); setUtilityView('tutorial') }} onBack={() => setUtilityView(null)} />
 
   if (modeView) {
     return (
       <GameModeScreen
         step={modeView}
-        onSolo={() => { setModeView(null); requestStart() }}
+        onSolo={() => setModeView('solo-mode')}
+        onClassic={() => { setModeView(null); requestStart('classic') }}
+        onTimed={() => { setModeView(null); requestStart('timed') }}
         onMultiplayer={() => setModeView('multiplayer-role')}
         onCreateRoom={() => { setModeView(null); setMultiplayerEntry('create') }}
         onJoinRoom={() => { setModeView(null); setMultiplayerEntry('join') }}
-        onBack={() => setModeView(modeView === 'multiplayer-role' ? 'game-mode' : null)}
+        onBack={() => setModeView(modeView === 'game-mode' ? null : 'game-mode')}
       />
     )
   }
@@ -87,13 +102,15 @@ export function App() {
           error={multiplayer.error}
           onAnswer={multiplayer.submitAnswer}
           onAdvance={multiplayer.advanceRound}
-          onExit={() => { multiplayer.reset(); setMultiplayerEntry(null) }}
+          onRematch={multiplayer.resetGame}
+          onExit={leaveMultiplayer}
         />
       )
     }
     return (
       <MultiplayerLobbyScreen
         entryMode={multiplayerEntry}
+        initialRoomCode={invitedRoomCode ?? undefined}
         role={multiplayer.role}
         connectionStatus={multiplayer.connectionStatus}
         startPending={multiplayer.startPending}
@@ -103,7 +120,7 @@ export function App() {
         onJoin={multiplayer.joinRoom}
         onStart={multiplayer.startGame}
         onAutoAdvanceChange={multiplayer.setAutoAdvanceEnabled}
-        onBack={() => { multiplayer.reset(); setMultiplayerEntry(null) }}
+        onBack={leaveMultiplayer}
       />
     )
   }

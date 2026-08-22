@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { buildCompleteDeck, selectRound, WISPWISE_THEME } from '../src/domain'
-import { parseClientMessage } from '../src/multiplayer/protocol'
+import { parseClientMessage, ROOM_CODE_ALPHABET } from '../src/multiplayer/protocol'
 import type { ClientMessage, ServerMessage } from '../src/multiplayer/protocol'
 import {
   createRoom,
@@ -9,6 +9,7 @@ import {
   type RoomState,
   type RoomTransition,
 } from '../src/multiplayer/room'
+import { ROOM_TTL_MS } from './config'
 
 interface Env {
   readonly GAME_ROOMS: DurableObjectNamespace<GameRoom>
@@ -17,14 +18,13 @@ interface Env {
 interface StoredRoom {
   readonly hostToken: string
   readonly state: RoomState
+  readonly lastActivityAtMs?: number
 }
 
 interface SocketAttachment {
   readonly actorId: string
   readonly role: 'host' | 'player'
 }
-
-const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, {
@@ -39,7 +39,7 @@ function json(body: unknown, status = 200): Response {
 
 function roomCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(bytes, (value) => ROOM_ALPHABET[value % ROOM_ALPHABET.length]).join('')
+  return Array.from(bytes, (value) => ROOM_CODE_ALPHABET[value % ROOM_CODE_ALPHABET.length]).join('')
 }
 
 function bearerToken(request: Request): string | null {
@@ -64,17 +64,25 @@ export class GameRoom extends DurableObject<Env> {
     return this.ctx.storage.get<StoredRoom>('room')
   }
 
-  private async saveRoom(room: StoredRoom): Promise<void> {
-    await this.ctx.storage.put('room', room)
-    if (room.state.phase === 'playing' && room.state.roundDeadlineAtMs !== undefined) {
-      await this.ctx.storage.setAlarm(room.state.roundDeadlineAtMs)
-    } else if (room.state.phase === 'results' && room.state.autoAdvanceAtMs !== undefined) {
-      await this.ctx.storage.setAlarm(room.state.autoAdvanceAtMs)
-    } else if (room.state.phase === 'paused' && room.state.hostReconnectDeadlineAtMs !== undefined) {
-      await this.ctx.storage.setAlarm(room.state.hostReconnectDeadlineAtMs)
-    } else if (room.state.phase !== 'paused') {
-      await this.ctx.storage.deleteAlarm()
-    }
+  private async scheduleNextAlarm(room: StoredRoom): Promise<void> {
+    const expiresAtMs = (room.lastActivityAtMs ?? Date.now()) + ROOM_TTL_MS
+    const stateDeadlineMs = room.state.phase === 'playing'
+      ? room.state.roundDeadlineAtMs
+      : room.state.phase === 'results'
+        ? room.state.autoAdvanceAtMs
+        : room.state.phase === 'paused'
+          ? room.state.hostReconnectDeadlineAtMs
+          : undefined
+    await this.ctx.storage.setAlarm(
+      stateDeadlineMs === undefined ? expiresAtMs : Math.min(stateDeadlineMs, expiresAtMs),
+    )
+  }
+
+  private async saveRoom(room: StoredRoom, activityAtMs = Date.now()): Promise<StoredRoom> {
+    const stored = { ...room, lastActivityAtMs: activityAtMs }
+    await this.ctx.storage.put('room', stored)
+    await this.scheduleNextAlarm(stored)
+    return stored
   }
 
   private broadcast(message: ServerMessage): void {
@@ -97,6 +105,7 @@ export class GameRoom extends DurableObject<Env> {
     if (
       message.type === 'start-game' ||
       message.type === 'advance-round' ||
+      message.type === 'reset-game' ||
       message.type === 'set-auto-advance'
     ) {
       if (attachment.role !== 'host') return { ok: false, state: room.state, reason: 'Host authorization required' }
@@ -105,6 +114,13 @@ export class GameRoom extends DurableObject<Env> {
           type: 'set-auto-advance',
           actorId: attachment.actorId,
           seconds: message.seconds,
+        })
+      }
+      if (message.type === 'reset-game') {
+        return transitionRoom(room.state, {
+          type: 'reset-game',
+          actorId: attachment.actorId,
+          questions: selectRound(buildCompleteDeck(WISPWISE_THEME).legal, Math.random),
         })
       }
       return transitionRoom(room.state, { type: message.type, actorId: attachment.actorId, atMs })
@@ -135,11 +151,11 @@ export class GameRoom extends DurableObject<Env> {
         hostToken: body.hostToken,
         state: createRoom({ roomCode: body.roomCode, hostId: body.hostId, questions }),
       }
-      await this.saveRoom(room)
+      const storedRoom = await this.saveRoom(room)
       return json({
         hostId: body.hostId,
         hostToken: body.hostToken,
-        snapshot: toPublicSnapshot(room.state),
+        snapshot: toPublicSnapshot(storedRoom.state),
       }, 201)
     }
 
@@ -191,7 +207,9 @@ export class GameRoom extends DurableObject<Env> {
         const transition = transitionRoom(room.state, { type: 'reconnect', actorId, atMs: Date.now() })
         if (!transition.ok) return json({ error: transition.reason }, 409)
         connectedRoom = applyTransition(room, transition)
-        await this.saveRoom(connectedRoom)
+        connectedRoom = await this.saveRoom(connectedRoom)
+      } else {
+        connectedRoom = await this.saveRoom(connectedRoom)
       }
 
       const pair = new WebSocketPair()
@@ -214,6 +232,7 @@ export class GameRoom extends DurableObject<Env> {
       if (
         message.type === 'start-game' ||
         message.type === 'advance-round' ||
+        message.type === 'reset-game' ||
         message.type === 'set-auto-advance'
       ) {
         if (token !== room.hostToken) return json({ error: 'Host authorization required' }, 401)
@@ -223,6 +242,12 @@ export class GameRoom extends DurableObject<Env> {
               actorId: room.state.hostId,
               seconds: message.seconds,
             })
+          : message.type === 'reset-game'
+            ? transitionRoom(room.state, {
+                type: 'reset-game',
+                actorId: room.state.hostId,
+                questions: selectRound(buildCompleteDeck(WISPWISE_THEME).legal, Math.random),
+              })
           : transitionRoom(room.state, {
               type: message.type,
               actorId: room.state.hostId,
@@ -254,6 +279,17 @@ export class GameRoom extends DurableObject<Env> {
     const room = await this.getRoom()
     if (!room) return
     const atMs = Date.now()
+    if (room.lastActivityAtMs !== undefined && atMs >= room.lastActivityAtMs + ROOM_TTL_MS) {
+      for (const socket of this.ctx.getWebSockets()) {
+        try {
+          socket.close(1001, 'Room expired')
+        } catch {
+          // The storage cleanup remains authoritative if a stale socket is already closed.
+        }
+      }
+      await this.ctx.storage.deleteAll()
+      return
+    }
     const transition = room.state.phase === 'paused'
       ? transitionRoom(room.state, { type: 'host-reconnect-timeout', atMs })
       : room.state.phase === 'results'
@@ -263,6 +299,8 @@ export class GameRoom extends DurableObject<Env> {
       const next = applyTransition(room, transition)
       await this.saveRoom(next)
       this.broadcast({ type: 'room-snapshot', snapshot: toPublicSnapshot(next.state) })
+    } else {
+      await this.scheduleNextAlarm(room)
     }
   }
 

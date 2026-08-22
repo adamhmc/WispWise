@@ -1,5 +1,7 @@
-import { exports } from 'cloudflare:workers'
+import { env, exports } from 'cloudflare:workers'
+import { runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
+import { ROOM_TTL_MS } from './config'
 
 interface ApiResponse {
   readonly hostToken?: string
@@ -208,5 +210,59 @@ describe('multiplayer Worker', () => {
       snapshot: { phase: 'results' },
     })
     socket.close(1000, 'test complete')
+  })
+
+  it('returns connected players to a fresh lobby for a rematch', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    const code = created.body.snapshot!.roomCode
+    const joined = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Ada' }),
+    })
+    const hostHeaders = { Authorization: `Bearer ${created.body.hostToken}` }
+    await call(`/api/rooms/${code}/command`, {
+      method: 'POST', headers: hostHeaders, body: JSON.stringify({ type: 'start-game' }),
+    })
+
+    for (let round = 1; round <= 10; round += 1) {
+      await call(`/api/rooms/${code}/command`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${joined.body.reconnectToken}` },
+        body: JSON.stringify({
+          type: 'submit-answer',
+          commandId: `answer-${round}`,
+          roundId: `round-${round}`,
+          answer: 'ghost',
+        }),
+      })
+      await call(`/api/rooms/${code}/command`, {
+        method: 'POST', headers: hostHeaders, body: JSON.stringify({ type: 'advance-round' }),
+      })
+    }
+
+    const reset = await call(`/api/rooms/${code}/command`, {
+      method: 'POST', headers: hostHeaders, body: JSON.stringify({ type: 'reset-game' }),
+    })
+    expect(reset.response.status).toBe(200)
+    expect(reset.body.snapshot).toMatchObject({ phase: 'lobby', players: [{ nickname: 'Ada', score: 0 }] })
+    expect(reset.body.snapshot).not.toHaveProperty('round')
+  })
+
+  it('deletes room storage after 24 hours without activity', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    const code = created.body.snapshot!.roomCode
+    const stub = env.GAME_ROOMS.getByName(code)
+    const remaining = await runInDurableObject(stub, async (instance, state) => {
+      const room = await state.storage.get<Record<string, unknown>>('room')
+      if (!room) throw new Error('Expected stored room')
+      await state.storage.put('room', { ...room, lastActivityAtMs: Date.now() - ROOM_TTL_MS })
+      await instance.alarm()
+      return state.storage.get('room')
+    })
+    expect(remaining).toBeUndefined()
+
+    const expired = await call(`/api/rooms/${code}`)
+    expect(expired.response.status).toBe(404)
+    expect(expired.body.error).toBe('Room not found')
   })
 })

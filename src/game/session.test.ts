@@ -7,11 +7,24 @@ describe('game session creation', () => {
     const session = createGameSession({ id: 'session-1', explanationsEnabled: true, random })
 
     expect(session.questions).toHaveLength(10)
+    expect(session.mode).toBe('classic')
     expect(session.questions.filter(({ evaluation }) => evaluation.kind === 'direct')).toHaveLength(5)
     expect(session.questions.filter(({ evaluation }) => evaluation.kind === 'exclusion')).toHaveLength(5)
     expect(new Set(session.questions.map(({ card }) => card.id))).toHaveLength(10)
     expect(session.records).toEqual([])
     expect(() => JSON.stringify(session)).not.toThrow()
+  })
+
+  it('creates a 60-second session from the full legal deck and disables manual explanations', () => {
+    const session = createGameSession({
+      id: 'timed-session',
+      mode: 'timed',
+      explanationsEnabled: true,
+      random,
+    })
+    expect(session.mode).toBe('timed')
+    expect(session.questions.length).toBeGreaterThan(10)
+    expect(session.explanationsEnabled).toBe(false)
   })
 
   it('preserves the explanation preference in the session', () => {

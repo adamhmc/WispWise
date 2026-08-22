@@ -12,6 +12,7 @@ describe('utility screens', () => {
     const onRestart = vi.fn()
     render(
       <ResultsScreen
+        mode="classic"
         stats={{ total: 10, correct: 8, incorrect: 2, accuracy: 0.8, averageCorrectTimeMs: 1250 }}
         onRestart={onRestart}
         onHome={vi.fn()}
@@ -22,6 +23,21 @@ describe('utility screens', () => {
     expect(screen.getByText('1.3 秒')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '再玩一次' }))
     expect(onRestart).toHaveBeenCalledOnce()
+  })
+
+  it('shows timed challenge attempts separately from correct answers', () => {
+    render(
+      <ResultsScreen
+        mode="timed"
+        stats={{ total: 14, correct: 10, incorrect: 4, accuracy: 10 / 14, averageCorrectTimeMs: 900 }}
+        onRestart={vi.fn()}
+        onHome={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: '完成 14 題！' })).toBeTruthy()
+    expect(screen.getByText('完成題數').previousSibling?.textContent).toBe('14')
+    expect(screen.getByText('答對題數').previousSibling?.textContent).toBe('10')
   })
 
   it('links rules back to the interactive tutorial', async () => {

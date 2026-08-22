@@ -2,6 +2,7 @@ import { OBJECT_IDS, type Card, type ObjectId } from '../domain'
 
 export const MULTIPLAYER_PROTOCOL_VERSION = 2 as const
 export const ROOM_CODE_LENGTH = 6
+export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export const ROUND_DURATION_MS = 15_000
 export const HOST_RECONNECT_GRACE_MS = 30_000
 export const CORRECT_ANSWER_POINTS = 1_000
@@ -84,6 +85,7 @@ export type ClientMessage =
       readonly answer: ObjectId
     }
   | { readonly type: 'advance-round' }
+  | { readonly type: 'reset-game' }
 
 export type ServerMessage =
   | { readonly type: 'room-snapshot'; readonly snapshot: PublicRoomSnapshot }
@@ -134,6 +136,7 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
       }
     case 'start-game':
     case 'advance-round':
+    case 'reset-game':
       return { type: value.type }
     case 'set-auto-advance':
       if (value.seconds !== null && !isAutoAdvanceSeconds(value.seconds)) return null

@@ -1,4 +1,5 @@
 export * from './commandId'
+export * from './invite'
 export * from './protocol'
 export * from './room'
 export * from './selectors'

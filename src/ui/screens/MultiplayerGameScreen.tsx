@@ -22,6 +22,7 @@ interface MultiplayerGameScreenProps {
   readonly error: string | null
   readonly onAnswer: (answer: ObjectId) => void
   readonly onAdvance: () => void
+  readonly onRematch: () => void
   readonly onExit: () => void
 }
 
@@ -152,7 +153,17 @@ function RoundResults({
   )
 }
 
-function FinalRanking({ snapshot, onExit }: { readonly snapshot: PublicRoomSnapshot; readonly onExit: () => void }) {
+function FinalRanking({
+  snapshot,
+  role,
+  onRematch,
+  onExit,
+}: {
+  readonly snapshot: PublicRoomSnapshot
+  readonly role: MultiplayerGameScreenProps['role']
+  readonly onRematch: () => void
+  readonly onExit: () => void
+}) {
   const ranked = rankPublicPlayers(snapshot.players)
   return (
     <section className="multiplayer-results final-ranking" aria-labelledby="final-ranking-title">
@@ -167,7 +178,10 @@ function FinalRanking({ snapshot, onExit }: { readonly snapshot: PublicRoomSnaps
           </li>
         ))}
       </ol>
-      <button className="primary-button" type="button" onClick={onExit}>回到首頁</button>
+      {role === 'host'
+        ? <button className="primary-button" type="button" onClick={onRematch}>再玩一局</button>
+        : <p className="waiting-hint">等待 Host 決定是否再玩一局…</p>}
+      <button className="text-button" type="button" onClick={onExit}>回到首頁</button>
     </section>
   )
 }
@@ -182,6 +196,7 @@ export function MultiplayerGameScreen({
   error,
   onAnswer,
   onAdvance,
+  onRematch,
   onExit,
 }: MultiplayerGameScreenProps) {
   const round = snapshot.round
@@ -206,7 +221,7 @@ export function MultiplayerGameScreen({
       {snapshot.phase === 'paused' ? (
         <section className="multiplayer-results"><h1>遊戲暫停</h1><p>Host 已離線，30 秒內重新連線即可繼續。</p></section>
       ) : snapshot.phase === 'finished' ? (
-        <FinalRanking snapshot={snapshot} onExit={onExit} />
+        <FinalRanking snapshot={snapshot} role={role} onRematch={onRematch} onExit={onExit} />
       ) : snapshot.phase === 'results' && round ? (
         <RoundResults
           snapshot={snapshot}

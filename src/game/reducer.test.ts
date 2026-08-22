@@ -121,6 +121,76 @@ describe('game reducer', () => {
     expect(state.session.records).toHaveLength(10)
   })
 
+  it('starts the 60 second deadline only when the first timed question is ready', () => {
+    const timedSession = createGameSession({
+      id: 'timed-session',
+      mode: 'timed',
+      explanationsEnabled: true,
+      random: { next: () => 0.25 },
+    })
+    const preparing = gameReducer(INITIAL_GAME_STATE, { type: 'START_GAME', session: timedSession })
+    const answering = gameReducer(preparing, { type: 'QUESTION_READY', nowMs: 5_000 })
+
+    expect(answering).toMatchObject({
+      status: 'answering',
+      session: {
+        mode: 'timed',
+        explanationsEnabled: false,
+        startedAtMs: 5_000,
+        deadlineAtMs: 65_000,
+      },
+    })
+  })
+
+  it('keeps serving timed questions until the deadline and then reports all attempts', () => {
+    const timedSession = createGameSession({
+      id: 'timed-session',
+      mode: 'timed',
+      explanationsEnabled: false,
+      random: { next: () => 0.25 },
+    })
+    let state: GameState = gameReducer(INITIAL_GAME_STATE, {
+      type: 'START_GAME',
+      session: timedSession,
+    })
+
+    state = gameReducer(state, { type: 'QUESTION_READY', nowMs: 1_000 })
+    state = gameReducer(state, {
+      type: 'SUBMIT_ANSWER',
+      objectId: correctAnswer(state),
+      nowMs: 1_400,
+    })
+    state = gameReducer(state, { type: 'AUTO_ADVANCE', nowMs: 1_500 })
+    expect(state).toMatchObject({ status: 'preparing', questionIndex: 1 })
+
+    state = gameReducer(state, { type: 'QUESTION_READY', nowMs: 1_600 })
+    state = gameReducer(state, { type: 'SUBMIT_ANSWER', objectId: 'ghost', nowMs: 2_000 })
+    state = gameReducer(state, { type: 'TIMER_EXPIRED', nowMs: 61_000 })
+
+    expect(state).toMatchObject({
+      status: 'results',
+      stats: { total: 2 },
+      session: { mode: 'timed' },
+    })
+  })
+
+  it('does not count a timed answer submitted at or after the deadline', () => {
+    const timedSession = createGameSession({
+      id: 'timed-session',
+      mode: 'timed',
+      explanationsEnabled: false,
+      random: { next: () => 0.25 },
+    })
+    const answering = startAnswering(timedSession, 1_000)
+    const resultsState = gameReducer(answering, {
+      type: 'SUBMIT_ANSWER',
+      objectId: correctAnswer(answering),
+      nowMs: 61_000,
+    })
+
+    expect(resultsState).toMatchObject({ status: 'results', stats: { total: 0 } })
+  })
+
   it('restarts with a clean session and exits without counting a partial question (AC-07)', () => {
     const answering = startAnswering()
     expect(gameReducer(answering, { type: 'EXIT_GAME' })).toEqual(INITIAL_GAME_STATE)

@@ -1,11 +1,11 @@
 import { calculateGameStats } from '@/domain'
-import type { AnswerRecord } from './session'
+import { TIMED_GAME_DURATION_MS, type AnswerRecord, type GameSession } from './session'
 import { INITIAL_GAME_STATE, type FeedbackState, type GameEvent, type GameState } from './state'
 
 function advanceFeedback(state: FeedbackState): GameState {
   const nextIndex = state.questionIndex + 1
 
-  if (nextIndex >= state.session.questions.length) {
+  if (state.session.mode === 'classic' && nextIndex >= state.session.questions.length) {
     return {
       status: 'results',
       session: state.session,
@@ -16,13 +16,30 @@ function advanceFeedback(state: FeedbackState): GameState {
   return {
     status: 'preparing',
     session: state.session,
-    questionIndex: nextIndex,
+    questionIndex: nextIndex % state.session.questions.length,
   }
+}
+
+function results(session: GameSession): GameState {
+  return { status: 'results', session, stats: calculateGameStats(session.records) }
+}
+
+function timedOut(session: GameSession, nowMs: number): boolean {
+  return session.mode === 'timed' && session.deadlineAtMs !== undefined && nowMs >= session.deadlineAtMs
 }
 
 export function gameReducer(state: GameState, event: GameEvent): GameState {
   if (event.type === 'EXIT_GAME') {
     return INITIAL_GAME_STATE
+  }
+
+  if (
+    event.type === 'TIMER_EXPIRED' &&
+    state.status !== 'home' &&
+    state.status !== 'tutorial' &&
+    timedOut(state.session, event.nowMs)
+  ) {
+    return results(state.session)
   }
 
   switch (state.status) {
@@ -36,17 +53,29 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
     case 'tutorial':
       return event.type === 'CLOSE_TUTORIAL' ? INITIAL_GAME_STATE : state
 
-    case 'preparing':
+    case 'preparing': {
       if (event.type !== 'QUESTION_READY') return state
+      if (timedOut(state.session, event.nowMs)) return results(state.session)
+
+      const session = state.session.mode === 'timed' && state.session.startedAtMs === undefined
+        ? {
+            ...state.session,
+            startedAtMs: event.nowMs,
+            deadlineAtMs: event.nowMs + TIMED_GAME_DURATION_MS,
+          }
+        : state.session
+
       return {
         status: 'answering',
-        session: state.session,
+        session,
         questionIndex: state.questionIndex,
         questionStartedAtMs: event.nowMs,
       }
+    }
 
     case 'answering': {
       if (event.type !== 'SUBMIT_ANSWER') return state
+      if (timedOut(state.session, event.nowMs)) return results(state.session)
 
       const question = state.session.questions[state.questionIndex]
       const elapsedMs = Math.max(0, event.nowMs - state.questionStartedAtMs)
@@ -73,6 +102,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         return advanceFeedback(state)
       }
       if (event.type === 'AUTO_ADVANCE' && !state.session.explanationsEnabled) {
+        if (event.nowMs !== undefined && timedOut(state.session, event.nowMs)) return results(state.session)
         return advanceFeedback(state)
       }
       return state

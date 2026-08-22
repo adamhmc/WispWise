@@ -17,9 +17,9 @@ export function HomeScreen({ onStart, onOpenRules, onOpenSettings }: HomeScreenP
         </div>
         <p className="home-screen__lead">看清楚卡牌，用最快的直覺找出唯一答案。</p>
         <ul className="home-screen__facts" aria-label="遊戲設定">
-          <li>10 張卡牌</li>
-          <li>不限時間</li>
-          <li>單人練習</li>
+          <li>10 題練習</li>
+          <li>60 秒挑戰</li>
+          <li>單人／多人</li>
         </ul>
         <button className="primary-button" type="button" onClick={onStart}>開始遊戲</button>
         <div className="secondary-actions">

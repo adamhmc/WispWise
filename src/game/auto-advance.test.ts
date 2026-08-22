@@ -1,5 +1,9 @@
 import type { TimerPort } from '@/ports'
-import { AutoAdvanceController, AUTO_ADVANCE_DELAY_MS } from './auto-advance'
+import {
+  AutoAdvanceController,
+  AUTO_ADVANCE_DELAY_MS,
+  TIMED_AUTO_ADVANCE_DELAY_MS,
+} from './auto-advance'
 import { gameReducer } from './reducer'
 import { createGameSession } from './session'
 import { INITIAL_GAME_STATE, type GameEvent, type GameState } from './state'
@@ -27,10 +31,11 @@ class FakeTimer implements TimerPort {
   }
 }
 
-function feedbackState(explanationsEnabled: boolean): GameState {
+function feedbackState(explanationsEnabled: boolean, mode: 'classic' | 'timed' = 'classic'): GameState {
   const session = createGameSession({
     id: 'session-1',
     explanationsEnabled,
+    mode,
     random: { next: () => 0.25 },
   })
   let state: GameState = gameReducer(INITIAL_GAME_STATE, { type: 'START_GAME', session })
@@ -47,7 +52,11 @@ describe('AutoAdvanceController', () => {
   it('schedules exactly one 1.2 second transition when explanations are disabled', () => {
     const timer = new FakeTimer()
     const events: GameEvent[] = []
-    const controller = new AutoAdvanceController(timer, (event) => events.push(event))
+    const controller = new AutoAdvanceController(
+      timer,
+      (event) => events.push(event),
+      { now: () => 1_500 },
+    )
     const state = feedbackState(false)
 
     controller.sync(state)
@@ -55,7 +64,16 @@ describe('AutoAdvanceController', () => {
 
     expect(timer.delayMs).toBe(AUTO_ADVANCE_DELAY_MS)
     timer.fire()
-    expect(events).toEqual([{ type: 'AUTO_ADVANCE' }])
+    expect(events).toEqual([{ type: 'AUTO_ADVANCE', nowMs: 1_500 }])
+  })
+
+  it('uses a shorter result pause during the 60 second challenge', () => {
+    const timer = new FakeTimer()
+    const controller = new AutoAdvanceController(timer, () => undefined)
+
+    controller.sync(feedbackState(false, 'timed'))
+
+    expect(timer.delayMs).toBe(TIMED_AUTO_ADVANCE_DELAY_MS)
   })
 
   it('does not schedule while explanations are enabled', () => {

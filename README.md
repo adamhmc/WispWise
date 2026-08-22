@@ -31,4 +31,8 @@ npm run test:e2e
 
 The frontend is deployed to GitHub Pages. The multiplayer Worker is deployed at `https://wispwise-multiplayer.wispwise-game.workers.dev`.
 
+Worker changes deploy automatically from `main` after the repository defines the
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` GitHub Actions secrets. Active
+rooms expire and delete their Durable Object storage after 24 hours without activity.
+
 Only mute, explanation, and tutorial preferences are stored in the browser. Game history is not persisted.

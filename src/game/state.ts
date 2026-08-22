@@ -50,7 +50,8 @@ export type GameEvent =
   | { readonly type: 'QUESTION_READY'; readonly nowMs: number }
   | { readonly type: 'SUBMIT_ANSWER'; readonly objectId: ObjectId; readonly nowMs: number }
   | { readonly type: 'NEXT_QUESTION' }
-  | { readonly type: 'AUTO_ADVANCE' }
+  | { readonly type: 'AUTO_ADVANCE'; readonly nowMs?: number }
+  | { readonly type: 'TIMER_EXPIRED'; readonly nowMs: number }
   | { readonly type: 'RESTART_GAME'; readonly session: GameSession }
   | { readonly type: 'EXIT_GAME' }
 

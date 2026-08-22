@@ -65,6 +65,11 @@ export type RoomCommand =
       readonly atMs: number
     }
   | { readonly type: 'advance-round'; readonly actorId: string; readonly atMs: number }
+  | {
+      readonly type: 'reset-game'
+      readonly actorId: string
+      readonly questions: readonly LegalDeckCard[]
+    }
   | { readonly type: 'round-deadline'; readonly atMs: number }
   | { readonly type: 'auto-advance'; readonly atMs: number }
   | { readonly type: 'disconnect'; readonly actorId: string; readonly atMs: number }
@@ -253,6 +258,30 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
         return rejected(state, 'Automatic advance time has not arrived')
       }
       return accepted(advanceRound(state, command.atMs))
+    }
+    case 'reset-game': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can reset')
+      if (state.phase !== 'finished' || state.finishReason !== 'completed') {
+        return rejected(state, 'Game is not ready for a rematch')
+      }
+      if (command.questions.length === 0) return rejected(state, 'A room requires at least one question')
+      return accepted({
+        ...state,
+        phase: 'lobby',
+        questions: command.questions,
+        players: state.players
+          .filter(({ connected }) => connected)
+          .map((player) => ({ ...player, score: 0, correctElapsedTotalMs: 0 })),
+        roundIndex: -1,
+        roundStartedAtMs: undefined,
+        roundDeadlineAtMs: undefined,
+        submissions: [],
+        autoAdvanceAtMs: undefined,
+        pausedAtMs: undefined,
+        hostReconnectDeadlineAtMs: undefined,
+        resumePhase: undefined,
+        finishReason: undefined,
+      })
     }
     case 'disconnect': {
       if (command.actorId === state.hostId) {

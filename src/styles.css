@@ -328,6 +328,23 @@ button:focus-visible {
 .lobby-game-started span { color: #477263; font-size: 0.88rem; line-height: 1.5; }
 
 .host-lobby-controls { display: grid; gap: 1rem; }
+.room-invite {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  border: 2px solid #c8dce6;
+  border-radius: 22px;
+  background: white;
+  text-align: left;
+}
+.room-invite svg { width: 150px; height: 150px; border-radius: 12px; }
+.room-invite h2, .room-invite p { margin: 0 0 0.55rem; }
+.room-invite p, .room-invite small { color: var(--muted); line-height: 1.45; }
+@media (max-width: 560px) {
+  .room-invite { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+}
 .auto-advance-setting {
   display: grid;
   grid-template-columns: 1fr auto;

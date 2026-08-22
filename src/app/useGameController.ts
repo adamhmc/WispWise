@@ -6,6 +6,7 @@ import {
   gameReducer,
   INITIAL_GAME_STATE,
   type Preferences,
+  type GameMode,
 } from '@/game'
 import {
   browserClock,
@@ -26,27 +27,30 @@ export function useGameController() {
   const lastAudioRecordCount = useRef(0)
   const audioCuePlayer = useMemo(() => new BrowserAudioCuePlayer(), [])
   const autoAdvance = useMemo(
-    () => new AutoAdvanceController(browserTimer, dispatch),
+    () => new AutoAdvanceController(browserTimer, dispatch, browserClock),
     [],
   )
+  const lastMode = useRef<GameMode>('classic')
 
-  const createFreshSession = useCallback(() => {
+  const createFreshSession = useCallback((mode: GameMode) => {
     sessionCounter.current += 1
     return createGameSession({
       id: `local-session-${sessionCounter.current}`,
       explanationsEnabled: preferences.explanationsEnabled,
       random: browserRandomSource,
+      mode,
     })
   }, [preferences.explanationsEnabled])
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((mode: GameMode = 'classic') => {
     lastAudioRecordCount.current = 0
-    dispatch({ type: 'START_GAME', session: createFreshSession() })
+    lastMode.current = mode
+    dispatch({ type: 'START_GAME', session: createFreshSession(mode) })
   }, [createFreshSession])
 
   const restartGame = useCallback(() => {
     lastAudioRecordCount.current = 0
-    dispatch({ type: 'RESTART_GAME', session: createFreshSession() })
+    dispatch({ type: 'RESTART_GAME', session: createFreshSession(lastMode.current) })
   }, [createFreshSession])
 
   const submitAnswer = useCallback((objectId: ObjectId) => {
@@ -70,6 +74,18 @@ export function useGameController() {
   useEffect(() => {
     autoAdvance.sync(state)
   }, [autoAdvance, state])
+
+  useEffect(() => {
+    if (
+      (state.status !== 'preparing' && state.status !== 'answering' && state.status !== 'feedback') ||
+      state.session.mode !== 'timed' ||
+      state.session.deadlineAtMs === undefined
+    ) return
+    const handle = browserTimer.schedule(() => {
+      dispatch({ type: 'TIMER_EXPIRED', nowMs: browserClock.now() })
+    }, Math.max(0, state.session.deadlineAtMs - browserClock.now()))
+    return () => browserTimer.cancel(handle)
+  }, [state])
 
   useEffect(() => {
     if (state.status !== 'feedback') return

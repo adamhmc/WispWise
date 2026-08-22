@@ -34,6 +34,10 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage(message)).toEqual(expected)
   })
 
+  it('accepts a Host rematch command', () => {
+    expect(parseClientMessage({ type: 'reset-game' })).toEqual({ type: 'reset-game' })
+  })
+
   it('keeps full points through 0.5 seconds and then decreases linearly to zero', () => {
     expect(calculateCorrectAnswerPoints(0)).toBe(1_000)
     expect(calculateCorrectAnswerPoints(500)).toBe(1_000)
