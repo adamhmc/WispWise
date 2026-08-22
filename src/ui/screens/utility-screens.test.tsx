@@ -49,6 +49,9 @@ describe('utility screens', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /靜音/ }))
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_PREFERENCES, muted: true })
+
+    await user.click(screen.getByRole('checkbox', { name: '自動換題' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_PREFERENCES, explanationsEnabled: false })
   })
 
   it('runs two interactive tutorial questions and completes', async () => {

@@ -1,6 +1,14 @@
 import type { PublicRoomSnapshot, ServerMessage } from './protocol'
 
-const API_BASE_URL = (import.meta.env.VITE_MULTIPLAYER_API_URL || 'http://localhost:8787').replace(/\/$/, '')
+const LOCAL_WORKER_PORT = '8788'
+const REQUEST_TIMEOUT_MS = 8_000
+
+function defaultApiBaseUrl(): string {
+  if (typeof window === 'undefined') return `http://127.0.0.1:${LOCAL_WORKER_PORT}`
+  return `${window.location.protocol}//${window.location.hostname}:${LOCAL_WORKER_PORT}`
+}
+
+const API_BASE_URL = (import.meta.env.VITE_MULTIPLAYER_API_URL || defaultApiBaseUrl()).replace(/\/$/, '')
 export const MULTIPLAYER_IDENTITY_KEY = 'wispwise.multiplayer.identity'
 
 interface CreatedRoom {
@@ -20,13 +28,25 @@ interface RoomSnapshotResponse {
 }
 
 async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init.headers },
-  })
-  const body = (await response.json()) as T & { error?: string }
-  if (!response.ok) throw new Error(body.error || '多人伺服器暫時無法使用')
-  return body
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...init.headers },
+      signal: controller.signal,
+    })
+    const body = (await response.json()) as T & { error?: string }
+    if (!response.ok) throw new Error(body.error || '多人伺服器暫時無法使用')
+    return body
+  } catch (caught) {
+    if (caught instanceof DOMException && caught.name === 'AbortError') {
+      throw new Error('多人伺服器未回應，請確認本機 Worker 已啟動後再試一次')
+    }
+    throw caught
+  } finally {
+    window.clearTimeout(timeout)
+  }
 }
 
 export function createMultiplayerRoom(): Promise<CreatedRoom> {

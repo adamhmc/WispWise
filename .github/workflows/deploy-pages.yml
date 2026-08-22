@@ -18,6 +18,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_MULTIPLAYER_API_URL: https://wispwise-multiplayer.wispwise-game.workers.dev
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

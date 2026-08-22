@@ -3,6 +3,10 @@
   "name": "wispwise-multiplayer",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-06",
+  "dev": {
+    "ip": "0.0.0.0",
+    "port": 8788
+  },
   "durable_objects": {
     "bindings": [
       {

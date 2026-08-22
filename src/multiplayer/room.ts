@@ -1,10 +1,11 @@
 import type { LegalDeckCard, ObjectId } from '../domain'
 import {
-  CORRECT_ANSWER_POINTS,
   HOST_RECONNECT_GRACE_MS,
   MAX_ROOM_PLAYERS,
   MULTIPLAYER_PROTOCOL_VERSION,
   ROUND_DURATION_MS,
+  calculateCorrectAnswerPoints,
+  type AutoAdvanceSeconds,
   type PublicRoomSnapshot,
   type RoomPhase,
   type RoundResult,
@@ -35,6 +36,8 @@ export interface RoomState {
   readonly roundStartedAtMs?: number
   readonly roundDeadlineAtMs?: number
   readonly submissions: readonly Submission[]
+  readonly autoAdvanceSeconds: AutoAdvanceSeconds | null
+  readonly autoAdvanceAtMs?: number
   readonly pausedAtMs?: number
   readonly hostReconnectDeadlineAtMs?: number
   readonly resumePhase?: Exclude<RoomPhase, 'paused' | 'finished'>
@@ -50,6 +53,11 @@ export type RoomCommand =
     }
   | { readonly type: 'start-game'; readonly actorId: string; readonly atMs: number }
   | {
+      readonly type: 'set-auto-advance'
+      readonly actorId: string
+      readonly seconds: AutoAdvanceSeconds | null
+    }
+  | {
       readonly type: 'submit-answer'
       readonly playerId: string
       readonly roundId: string
@@ -58,6 +66,7 @@ export type RoomCommand =
     }
   | { readonly type: 'advance-round'; readonly actorId: string; readonly atMs: number }
   | { readonly type: 'round-deadline'; readonly atMs: number }
+  | { readonly type: 'auto-advance'; readonly atMs: number }
   | { readonly type: 'disconnect'; readonly actorId: string; readonly atMs: number }
   | { readonly type: 'reconnect'; readonly actorId: string; readonly atMs: number }
   | { readonly type: 'host-reconnect-timeout'; readonly atMs: number }
@@ -82,6 +91,7 @@ export function createRoom(options: {
     players: [],
     roundIndex: -1,
     submissions: [],
+    autoAdvanceSeconds: null,
   }
 }
 
@@ -108,10 +118,32 @@ function roundId(roundIndex: number): string {
   return `round-${roundIndex + 1}`
 }
 
-function settleRound(state: RoomState): RoomState {
+function settleRound(state: RoomState, atMs: number): RoomState {
   const answer = state.questions[state.roundIndex]?.evaluation.answer
   if (!answer) return state
-  return { ...state, phase: 'results' }
+  const autoAdvanceSeconds = state.autoAdvanceSeconds ?? null
+  return {
+    ...state,
+    phase: 'results',
+    autoAdvanceAtMs:
+      autoAdvanceSeconds === null ? undefined : atMs + autoAdvanceSeconds * 1_000,
+  }
+}
+
+function advanceRound(state: RoomState, atMs: number): RoomState {
+  const nextIndex = state.roundIndex + 1
+  if (nextIndex >= state.questions.length) {
+    return { ...state, phase: 'finished', finishReason: 'completed', autoAdvanceAtMs: undefined }
+  }
+  return {
+    ...state,
+    phase: 'playing',
+    roundIndex: nextIndex,
+    roundStartedAtMs: atMs,
+    roundDeadlineAtMs: atMs + ROUND_DURATION_MS,
+    submissions: [],
+    autoAdvanceAtMs: undefined,
+  }
 }
 
 function hasEveryPlayerSubmitted(state: RoomState): boolean {
@@ -161,6 +193,11 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
         submissions: [],
       })
     }
+    case 'set-auto-advance': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change settings')
+      if (state.phase !== 'lobby') return rejected(state, 'Settings can only change in the lobby')
+      return accepted({ ...state, autoAdvanceSeconds: command.seconds })
+    }
     case 'submit-answer': {
       if (state.phase !== 'playing') return rejected(state, 'Round is not accepting answers')
       if (command.roundId !== roundId(state.roundIndex)) return rejected(state, 'Answer is for another round')
@@ -176,23 +213,24 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       const question = state.questions[state.roundIndex]
       const isCorrect = command.answer === question.evaluation.answer
       const elapsedMs = Math.max(0, command.atMs - (state.roundStartedAtMs ?? command.atMs))
+      const pointsAwarded = isCorrect ? calculateCorrectAnswerPoints(elapsedMs) : 0
       const submission: Submission = {
         playerId: command.playerId,
         answer: command.answer,
         isCorrect,
         elapsedMs,
         submittedAtMs: command.atMs,
-        pointsAwarded: isCorrect ? CORRECT_ANSWER_POINTS : 0,
+        pointsAwarded,
       }
       let next: RoomState = { ...state, submissions: [...state.submissions, submission] }
       if (isCorrect) {
         next = updatePlayer(next, command.playerId, (current) => ({
           ...current,
-          score: current.score + CORRECT_ANSWER_POINTS,
+          score: current.score + pointsAwarded,
           correctElapsedTotalMs: current.correctElapsedTotalMs + elapsedMs,
         }))
       }
-      if (hasEveryPlayerSubmitted(next)) next = settleRound(next)
+      if (hasEveryPlayerSubmitted(next)) next = settleRound(next, command.atMs)
       return accepted(next)
     }
     case 'round-deadline': {
@@ -200,23 +238,21 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       if (state.roundDeadlineAtMs === undefined || command.atMs < state.roundDeadlineAtMs) {
         return rejected(state, 'Round deadline has not passed')
       }
-      return accepted(settleRound(state))
+      return accepted(settleRound(state, command.atMs))
     }
     case 'advance-round': {
       if (command.actorId !== state.hostId) return rejected(state, 'Only the host can advance')
       if (state.phase !== 'results') return rejected(state, 'Round results are not ready')
-      const nextIndex = state.roundIndex + 1
-      if (nextIndex >= state.questions.length) {
-        return accepted({ ...state, phase: 'finished', finishReason: 'completed' })
+      return accepted(advanceRound(state, command.atMs))
+    }
+    case 'auto-advance': {
+      if (state.phase !== 'results' || state.autoAdvanceAtMs === undefined) {
+        return rejected(state, 'Automatic advance is not scheduled')
       }
-      return accepted({
-        ...state,
-        phase: 'playing',
-        roundIndex: nextIndex,
-        roundStartedAtMs: command.atMs,
-        roundDeadlineAtMs: command.atMs + ROUND_DURATION_MS,
-        submissions: [],
-      })
+      if (command.atMs < state.autoAdvanceAtMs) {
+        return rejected(state, 'Automatic advance time has not arrived')
+      }
+      return accepted(advanceRound(state, command.atMs))
     }
     case 'disconnect': {
       if (command.actorId === state.hostId) {
@@ -253,6 +289,8 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
             state.roundStartedAtMs === undefined ? undefined : state.roundStartedAtMs + pausedDurationMs,
           roundDeadlineAtMs:
             state.roundDeadlineAtMs === undefined ? undefined : state.roundDeadlineAtMs + pausedDurationMs,
+          autoAdvanceAtMs:
+            state.autoAdvanceAtMs === undefined ? undefined : state.autoAdvanceAtMs + pausedDurationMs,
           pausedAtMs: undefined,
           hostReconnectDeadlineAtMs: undefined,
           resumePhase: undefined,
@@ -293,6 +331,13 @@ export function toPublicSnapshot(state: RoomState, nowMs = Date.now()): PublicRo
       score: player.score,
       correctElapsedTotalMs: player.correctElapsedTotalMs,
     })),
+    autoAdvanceSeconds: state.autoAdvanceSeconds ?? null,
+    ...(showResults && state.autoAdvanceAtMs !== undefined
+      ? {
+          autoAdvanceAtMs: state.autoAdvanceAtMs,
+          autoAdvanceRemainingMs: Math.max(0, state.autoAdvanceAtMs - nowMs),
+        }
+      : {}),
     ...(hasRound && state.roundDeadlineAtMs !== undefined
       ? {
           round: {

@@ -9,6 +9,8 @@ interface ApiResponse {
   readonly snapshot?: {
     readonly roomCode: string
     readonly phase: string
+    readonly autoAdvanceSeconds?: number | null
+    readonly autoAdvanceRemainingMs?: number
     readonly players: readonly { id: string; nickname: string; score: number }[]
     readonly round?: { id: string }
     readonly correctAnswer?: string
@@ -60,6 +62,14 @@ describe('multiplayer Worker', () => {
     })
     expect(unauthorized.response.status).toBe(401)
 
+    const configured = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'set-auto-advance', seconds: 5 }),
+    })
+    expect(configured.response.status).toBe(200)
+    expect(configured.body.snapshot?.autoAdvanceSeconds).toBe(5)
+
     const started = await call(`/api/rooms/${code}/command`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${created.body.hostToken}` },
@@ -83,6 +93,7 @@ describe('multiplayer Worker', () => {
     expect(answered.response.status).toBe(200)
     expect(answered.body.snapshot?.phase).toBe('results')
     expect(answered.body.snapshot?.correctAnswer).toBeTruthy()
+    expect(answered.body.snapshot?.autoAdvanceRemainingMs).toBeGreaterThan(0)
   })
 
   it('rejects duplicate nicknames and joining after start', async () => {

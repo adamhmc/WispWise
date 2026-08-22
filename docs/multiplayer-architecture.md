@@ -19,11 +19,11 @@ No multiplayer match history is persisted. Durable Object storage contains only 
 - The server selects ten legal questions: five direct matches and five exclusion questions.
 - Each question accepts one answer per player for 15 seconds.
 - The round settles immediately after all joined players answer, or when the alarm reaches the deadline.
-- A correct answer awards 1,000 points; an incorrect or missing answer awards zero.
+- A correct answer within 0.5 seconds awards 1,000 points. From 0.5 to 15 seconds, points decrease linearly from 1,000 to zero. An incorrect or missing answer awards zero.
 - Equal scores are ordered by the lower total elapsed time across correct answers.
 - Joining after the Host starts is rejected.
 - A disconnected Host pauses the room. Reconnection within 30 seconds restores the phase and shifts the active round clock; otherwise the room finishes.
-- Results remain visible until the Host advances. This can later become a server timer without changing the scoring engine.
+- The Host chooses whether automatic progression is enabled. When enabled, a server-authoritative five-second result countdown advances the room even if no browser timer is active.
 
 ## Transport
 
@@ -56,5 +56,5 @@ The current local build includes the complete ten-round screen flow:
 2. Create or join a room and synchronize the lobby roster over WebSocket.
 3. Show the card, countdown, and answer progress only on the Host display.
 4. Show only the five answer objects on Player devices and lock after one selection.
-5. Publish the correct answer, response times, and awarded points to both roles.
-6. Let the Host advance each round and show a score/time-ranked final leaderboard after round ten.
+5. Publish the original question artwork, correct answer, response times, and awarded points to both roles.
+6. Let the Host advance immediately or use the configured automatic countdown, then show a score/time-ranked final leaderboard after round ten.

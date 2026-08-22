@@ -11,6 +11,7 @@ interface MultiplayerLobbyScreenProps {
   readonly onCreate: () => void
   readonly onJoin: (roomCode: string, nickname: string) => void
   readonly onStart: () => void
+  readonly onAutoAdvanceChange: (enabled: boolean) => void
   readonly onBack: () => void
 }
 
@@ -24,6 +25,7 @@ export function MultiplayerLobbyScreen({
   onCreate,
   onJoin,
   onStart,
+  onAutoAdvanceChange,
   onBack,
 }: MultiplayerLobbyScreenProps) {
   const [roomCode, setRoomCode] = useState('')
@@ -83,14 +85,25 @@ export function MultiplayerLobbyScreen({
             <span>房間已進入第 1 題；多人題目與玩家作答畫面將在下一個開發階段接上。</span>
           </div>
         ) : role === 'host' ? (
-          <button
-            className="primary-button"
-            type="button"
-            onClick={onStart}
-            disabled={snapshot.players.length === 0 || connectionStatus !== 'connected' || startPending}
-          >
-            {startPending ? '正在開始…' : '開始 10 題挑戰'}
-          </button>
+          <div className="host-lobby-controls">
+            <label className="auto-advance-setting">
+              <span><strong>自動進行下一題</strong><small>開啟後，結算 5 秒會自動繼續</small></span>
+              <input
+                type="checkbox"
+                aria-label="自動進行下一題"
+                checked={snapshot.autoAdvanceSeconds !== null}
+                onChange={(event) => onAutoAdvanceChange(event.target.checked)}
+              />
+            </label>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={onStart}
+              disabled={snapshot.players.length === 0 || connectionStatus !== 'connected' || startPending}
+            >
+              {startPending ? '正在開始…' : '開始 10 題挑戰'}
+            </button>
+          </div>
         ) : <p className="waiting-hint">題目會顯示在 Host 裝置；你的手機只會顯示作答選項。</p>}
         {error && <p className="lobby-error" role="alert">{error}</p>}
       </section>

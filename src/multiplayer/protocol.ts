@@ -1,11 +1,25 @@
 import { OBJECT_IDS, type Card, type ObjectId } from '../domain'
 
-export const MULTIPLAYER_PROTOCOL_VERSION = 1 as const
+export const MULTIPLAYER_PROTOCOL_VERSION = 2 as const
 export const ROOM_CODE_LENGTH = 6
 export const ROUND_DURATION_MS = 15_000
 export const HOST_RECONNECT_GRACE_MS = 30_000
 export const CORRECT_ANSWER_POINTS = 1_000
+export const MAX_SCORE_GRACE_MS = 500
 export const MAX_ROOM_PLAYERS = 8
+export const AUTO_ADVANCE_SECONDS_OPTIONS = [3, 5, 10] as const
+
+export type AutoAdvanceSeconds = (typeof AUTO_ADVANCE_SECONDS_OPTIONS)[number]
+
+export function calculateCorrectAnswerPoints(elapsedMs: number): number {
+  const normalizedElapsedMs = Math.max(0, elapsedMs)
+  if (normalizedElapsedMs <= MAX_SCORE_GRACE_MS) return CORRECT_ANSWER_POINTS
+  if (normalizedElapsedMs >= ROUND_DURATION_MS) return 0
+
+  const scoringWindowMs = ROUND_DURATION_MS - MAX_SCORE_GRACE_MS
+  const remainingScoringMs = ROUND_DURATION_MS - normalizedElapsedMs
+  return Math.round(CORRECT_ANSWER_POINTS * (remainingScoringMs / scoringWindowMs))
+}
 
 export type RoomPhase = 'lobby' | 'playing' | 'results' | 'paused' | 'finished'
 
@@ -43,6 +57,9 @@ export interface PublicRoomSnapshot {
   readonly hostConnected: boolean
   readonly serverNowMs: number
   readonly players: readonly PublicPlayer[]
+  readonly autoAdvanceSeconds: AutoAdvanceSeconds | null
+  readonly autoAdvanceAtMs?: number
+  readonly autoAdvanceRemainingMs?: number
   readonly round?: PublicRound
   readonly correctAnswer?: ObjectId
   readonly results?: readonly RoundResult[]
@@ -56,6 +73,10 @@ export type ClientMessage =
       readonly reconnectToken?: string
     }
   | { readonly type: 'start-game' }
+  | {
+      readonly type: 'set-auto-advance'
+      readonly seconds: AutoAdvanceSeconds | null
+    }
   | {
       readonly type: 'submit-answer'
       readonly commandId: string
@@ -93,6 +114,10 @@ function isObjectId(value: unknown): value is ObjectId {
   return typeof value === 'string' && (OBJECT_IDS as readonly string[]).includes(value)
 }
 
+function isAutoAdvanceSeconds(value: unknown): value is AutoAdvanceSeconds {
+  return typeof value === 'number' && (AUTO_ADVANCE_SECONDS_OPTIONS as readonly number[]).includes(value)
+}
+
 export function parseClientMessage(value: unknown): ClientMessage | null {
   if (!isRecord(value) || typeof value.type !== 'string') {
     return null
@@ -110,6 +135,9 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
     case 'start-game':
     case 'advance-round':
       return { type: value.type }
+    case 'set-auto-advance':
+      if (value.seconds !== null && !isAutoAdvanceSeconds(value.seconds)) return null
+      return { type: 'set-auto-advance', seconds: value.seconds }
     case 'submit-answer':
       if (
         !isNonEmptyString(value.commandId) ||

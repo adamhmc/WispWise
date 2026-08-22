@@ -10,7 +10,7 @@ const card = createCard(
 
 function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     roomCode: 'WISP42',
     revision: 2,
     phase,
@@ -20,6 +20,7 @@ function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
       { id: 'p1', nickname: 'Ada', connected: true, score: 1000, correctElapsedTotalMs: 1200 },
       { id: 'p2', nickname: 'Lin', connected: true, score: 0, correctElapsedTotalMs: 0 },
     ],
+    autoAdvanceSeconds: null,
     round: {
       id: 'round-1',
       number: 1,
@@ -110,6 +111,8 @@ describe('MultiplayerGameScreen', () => {
       />,
     )
     expect(screen.getByRole('heading', { name: '正確答案' })).toBeTruthy()
+    expect(screen.getByRole('article', { name: '題目卡' })).toBeTruthy()
+    expect(screen.getByText('原本題目')).toBeTruthy()
     expect(screen.getByRole('button', { name: '下一題' })).toBeTruthy()
 
     rerender(
@@ -126,6 +129,27 @@ describe('MultiplayerGameScreen', () => {
     expect(screen.getByRole('heading', { name: '答對了！' })).toBeTruthy()
     expect(screen.getByText('你的選擇：', { exact: false }).textContent).toContain('鬼')
     expect(screen.queryByRole('button', { name: '下一題' })).toBeNull()
+  })
+
+  it('shows the server-synchronized automatic advance countdown', () => {
+    render(
+      <MultiplayerGameScreen
+        role="player"
+        actorId="p1"
+        connectionStatus="connected"
+        snapshot={{
+          ...snapshot('results'),
+          autoAdvanceSeconds: 5,
+          autoAdvanceAtMs: Date.now() + 5_000,
+          autoAdvanceRemainingMs: 5_000,
+        }}
+        snapshotReceivedAtMs={Date.now()}
+        error={null}
+        {...handlers}
+      />,
+    )
+    expect(screen.getByRole('timer').textContent).toContain('下一題將在 5 秒後顯示')
+    expect(screen.queryByText('等待 Host 開始下一題…')).toBeNull()
   })
 
   it('orders the final ranking by score and response time', () => {

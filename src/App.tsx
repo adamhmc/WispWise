@@ -102,6 +102,7 @@ export function App() {
         onCreate={multiplayer.createRoom}
         onJoin={multiplayer.joinRoom}
         onStart={multiplayer.startGame}
+        onAutoAdvanceChange={multiplayer.setAutoAdvanceEnabled}
         onBack={() => { multiplayer.reset(); setMultiplayerEntry(null) }}
       />
     )

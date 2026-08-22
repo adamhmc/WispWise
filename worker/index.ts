@@ -68,6 +68,8 @@ export class GameRoom extends DurableObject<Env> {
     await this.ctx.storage.put('room', room)
     if (room.state.phase === 'playing' && room.state.roundDeadlineAtMs !== undefined) {
       await this.ctx.storage.setAlarm(room.state.roundDeadlineAtMs)
+    } else if (room.state.phase === 'results' && room.state.autoAdvanceAtMs !== undefined) {
+      await this.ctx.storage.setAlarm(room.state.autoAdvanceAtMs)
     } else if (room.state.phase === 'paused' && room.state.hostReconnectDeadlineAtMs !== undefined) {
       await this.ctx.storage.setAlarm(room.state.hostReconnectDeadlineAtMs)
     } else if (room.state.phase !== 'paused') {
@@ -92,13 +94,20 @@ export class GameRoom extends DurableObject<Env> {
     message: Exclude<ClientMessage, { type: 'join-room' }>,
     atMs: number,
   ): RoomTransition {
-    if (message.type === 'start-game' || message.type === 'advance-round') {
+    if (
+      message.type === 'start-game' ||
+      message.type === 'advance-round' ||
+      message.type === 'set-auto-advance'
+    ) {
       if (attachment.role !== 'host') return { ok: false, state: room.state, reason: 'Host authorization required' }
-      return transitionRoom(room.state, {
-        type: message.type,
-        actorId: attachment.actorId,
-        atMs,
-      })
+      if (message.type === 'set-auto-advance') {
+        return transitionRoom(room.state, {
+          type: 'set-auto-advance',
+          actorId: attachment.actorId,
+          seconds: message.seconds,
+        })
+      }
+      return transitionRoom(room.state, { type: message.type, actorId: attachment.actorId, atMs })
     }
     if (attachment.role !== 'player') {
       return { ok: false, state: room.state, reason: 'Player authorization required' }
@@ -202,13 +211,23 @@ export class GameRoom extends DurableObject<Env> {
 
       let transition: RoomTransition
       const atMs = Date.now()
-      if (message.type === 'start-game' || message.type === 'advance-round') {
+      if (
+        message.type === 'start-game' ||
+        message.type === 'advance-round' ||
+        message.type === 'set-auto-advance'
+      ) {
         if (token !== room.hostToken) return json({ error: 'Host authorization required' }, 401)
-        transition = transitionRoom(room.state, {
-          type: message.type,
-          actorId: room.state.hostId,
-          atMs,
-        })
+        transition = message.type === 'set-auto-advance'
+          ? transitionRoom(room.state, {
+              type: 'set-auto-advance',
+              actorId: room.state.hostId,
+              seconds: message.seconds,
+            })
+          : transitionRoom(room.state, {
+              type: message.type,
+              actorId: room.state.hostId,
+              atMs,
+            })
       } else {
         const player = room.state.players.find(({ reconnectToken }) => reconnectToken === token)
         if (!player) return json({ error: 'Player authorization required' }, 401)
@@ -235,9 +254,10 @@ export class GameRoom extends DurableObject<Env> {
     const room = await this.getRoom()
     if (!room) return
     const atMs = Date.now()
-    const transition =
-      room.state.phase === 'paused'
-        ? transitionRoom(room.state, { type: 'host-reconnect-timeout', atMs })
+    const transition = room.state.phase === 'paused'
+      ? transitionRoom(room.state, { type: 'host-reconnect-timeout', atMs })
+      : room.state.phase === 'results'
+        ? transitionRoom(room.state, { type: 'auto-advance', atMs })
         : transitionRoom(room.state, { type: 'round-deadline', atMs })
     if (transition.ok) {
       const next = applyTransition(room, transition)

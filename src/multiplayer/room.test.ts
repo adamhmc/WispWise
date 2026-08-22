@@ -84,7 +84,7 @@ describe('multiplayer room', () => {
     })
   })
 
-  it('awards 1000 only for a correct first answer and records elapsed time', () => {
+  it('awards time-decayed points only for a correct first answer and records elapsed time', () => {
     const initial = start(roomWithPlayers())
     const answer = initial.questions[0].evaluation.answer
     const result = transitionRoom(initial, {
@@ -92,17 +92,17 @@ describe('multiplayer room', () => {
       playerId: 'player-1',
       roundId: 'round-1',
       answer,
-      atMs: 2_250,
+      atMs: 1_500,
     })
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.state.players[0]).toMatchObject({
       score: CORRECT_ANSWER_POINTS,
-      correctElapsedTotalMs: 1_250,
+      correctElapsedTotalMs: 500,
     })
     expect(result.state.submissions[0]).toMatchObject({
       isCorrect: true,
-      elapsedMs: 1_250,
+      elapsedMs: 500,
       pointsAwarded: CORRECT_ANSWER_POINTS,
     })
 
@@ -127,7 +127,7 @@ describe('multiplayer room', () => {
       playerId: 'player-1',
       roundId: 'round-1',
       answer: correct,
-      atMs: 2_000,
+      atMs: 1_500,
     })
     if (!first.ok) throw new Error(first.reason)
     expect(first.state.phase).toBe('playing')
@@ -147,6 +147,38 @@ describe('multiplayer room', () => {
     state = second.state
     expect(state.phase).toBe('results')
     expect(state.submissions.map(({ pointsAwarded }) => pointsAwarded)).toEqual([1_000, 0])
+  })
+
+  it('stores the Host setting and automatically advances after the selected delay', () => {
+    const configured = transitionRoom(roomWithPlayers(1), {
+      type: 'set-auto-advance',
+      actorId: 'host-1',
+      seconds: 5,
+    })
+    if (!configured.ok) throw new Error(configured.reason)
+    let state = start(configured.state)
+    const answered = transitionRoom(state, {
+      type: 'submit-answer',
+      playerId: 'player-1',
+      roundId: 'round-1',
+      answer: state.questions[0].evaluation.answer,
+      atMs: 2_000,
+    })
+    if (!answered.ok) throw new Error(answered.reason)
+    state = answered.state
+    expect(state).toMatchObject({ phase: 'results', autoAdvanceAtMs: 7_000 })
+    expect(toPublicSnapshot(state, 3_000)).toMatchObject({
+      autoAdvanceSeconds: 5,
+      autoAdvanceRemainingMs: 4_000,
+    })
+    expect(transitionRoom(state, { type: 'auto-advance', atMs: 6_999 })).toMatchObject({
+      ok: false,
+      reason: 'Automatic advance time has not arrived',
+    })
+    expect(transitionRoom(state, { type: 'auto-advance', atMs: 7_000 })).toMatchObject({
+      ok: true,
+      state: { phase: 'playing', roundIndex: 1 },
+    })
   })
 
   it('settles unanswered players at the deadline and rejects late answers', () => {

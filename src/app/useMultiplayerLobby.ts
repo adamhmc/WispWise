@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ObjectId } from '@/domain'
-import { createClientCommandId, type PublicRoomSnapshot, type ServerMessage } from '@/multiplayer'
+import {
+  createClientCommandId,
+  type AutoAdvanceSeconds,
+  type PublicRoomSnapshot,
+  type ServerMessage,
+} from '@/multiplayer'
 import {
   MULTIPLAYER_IDENTITY_KEY,
   connectToMultiplayerRoom,
@@ -170,6 +175,17 @@ export function useMultiplayerLobby() {
     socketRef.current.send(JSON.stringify({ type: 'start-game' }))
   }
 
+  const setAutoAdvanceEnabled = (enabled: boolean) => {
+    setError(null)
+    if (role !== 'host' || snapshot?.phase !== 'lobby') return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    const seconds: AutoAdvanceSeconds | null = enabled ? 5 : null
+    socketRef.current.send(JSON.stringify({ type: 'set-auto-advance', seconds }))
+  }
+
   const submitAnswer = (answer: ObjectId) => {
     setError(null)
     const round = snapshot?.round
@@ -249,6 +265,7 @@ export function useMultiplayerLobby() {
     createRoom,
     joinRoom,
     startGame,
+    setAutoAdvanceEnabled,
     submitAnswer,
     advanceRound,
     reset,

@@ -5,6 +5,7 @@ import {
   hasPlayerAnswered,
   rankPublicPlayers,
   estimateRemainingSeconds,
+  type PublicRound,
   type PublicRoomSnapshot,
 } from '@/multiplayer'
 import { AnswerOptions } from '@/ui/components/AnswerOptions'
@@ -78,18 +79,22 @@ function PlayerProgress({ snapshot }: { readonly snapshot: PublicRoomSnapshot })
 
 function RoundResults({
   snapshot,
+  round,
   role,
   actorId,
   onAdvance,
+  autoAdvanceRemainingSeconds,
 }: {
   readonly snapshot: PublicRoomSnapshot
+  readonly round: PublicRound
   readonly role: 'host' | 'player'
   readonly actorId: string | null
   readonly onAdvance: () => void
+  readonly autoAdvanceRemainingSeconds: number | null
 }) {
   const correctAnswer = snapshot.correctAnswer
   const playerResult = findPlayerResult(snapshot, actorId)
-  const isLastRound = snapshot.round?.number === snapshot.round?.total
+  const isLastRound = round.number === round.total
 
   return (
     <section className="multiplayer-results" aria-labelledby="round-result-title">
@@ -99,18 +104,26 @@ function RoundResults({
           ? playerResult.isCorrect ? '答對了！' : '這題答錯了'
           : '正確答案'}
       </h1>
-      {role === 'player' && playerResult && (
-        <p className="player-answer-receipt">
-          <span aria-hidden="true">✓</span>
-          你的選擇：<strong>{getCatalogItem(playerResult.answer).label}</strong>
-        </p>
-      )}
-      {correctAnswer && (
-        <div className="correct-object">
-          <ObjectGlyph objectId={correctAnswer} colorId={getFixedColor(correctAnswer)} />
-          <strong>{getCatalogItem(correctAnswer).label}</strong>
+      <div className="round-review">
+        <div className="round-review__card">
+          <span>原本題目</span>
+          <QuestionCard card={round.card} />
         </div>
-      )}
+        <div className="round-review__answer">
+          {role === 'player' && playerResult && (
+            <p className="player-answer-receipt" data-correct={playerResult.isCorrect || undefined}>
+              <span aria-hidden="true">{playerResult.isCorrect ? '✓' : '×'}</span>
+              你的選擇：<strong>{getCatalogItem(playerResult.answer).label}</strong>
+            </p>
+          )}
+          {correctAnswer && (
+            <div className="correct-object">
+              <ObjectGlyph objectId={correctAnswer} colorId={getFixedColor(correctAnswer)} />
+              <span><small>正確答案</small><strong>{getCatalogItem(correctAnswer).label}</strong></span>
+            </div>
+          )}
+        </div>
+      </div>
       <ol className="round-result-list">
         {snapshot.players.map((player) => {
           const result = snapshot.results?.find(({ playerId }) => playerId === player.id)
@@ -123,11 +136,18 @@ function RoundResults({
           )
         })}
       </ol>
+      {autoAdvanceRemainingSeconds !== null && (
+        <p className="auto-advance-countdown" role="timer">
+          {isLastRound ? '最終排名' : '下一題'}將在 <strong>{autoAdvanceRemainingSeconds}</strong> 秒後顯示
+        </p>
+      )}
       {role === 'host' ? (
         <button className="primary-button" type="button" onClick={onAdvance}>
           {isLastRound ? '查看最終排名' : '下一題'}
         </button>
-      ) : <p className="waiting-hint">等待 Host 開始下一題…</p>}
+      ) : autoAdvanceRemainingSeconds === null
+        ? <p className="waiting-hint">等待 Host 開始下一題…</p>
+        : null}
     </section>
   )
 }
@@ -171,6 +191,13 @@ export function MultiplayerGameScreen({
     snapshot.phase === 'playing',
   )
   const answered = hasPlayerAnswered(snapshot, actorId) || selectedAnswer !== undefined
+  const autoAdvanceRemainingSeconds = useRemainingSeconds(
+    snapshot.autoAdvanceRemainingMs,
+    snapshotReceivedAtMs,
+    snapshot.phase === 'results',
+  )
+  const hasAutoAdvanceCountdown =
+    snapshot.phase === 'results' && snapshot.autoAdvanceRemainingMs !== undefined
 
   return (
     <main className="game-screen multiplayer-game" data-role={role}>
@@ -180,8 +207,17 @@ export function MultiplayerGameScreen({
         <section className="multiplayer-results"><h1>遊戲暫停</h1><p>Host 已離線，30 秒內重新連線即可繼續。</p></section>
       ) : snapshot.phase === 'finished' ? (
         <FinalRanking snapshot={snapshot} onExit={onExit} />
+      ) : snapshot.phase === 'results' && round ? (
+        <RoundResults
+          snapshot={snapshot}
+          round={round}
+          role={role}
+          actorId={actorId}
+          onAdvance={onAdvance}
+          autoAdvanceRemainingSeconds={hasAutoAdvanceCountdown ? autoAdvanceRemainingSeconds : null}
+        />
       ) : snapshot.phase === 'results' ? (
-        <RoundResults snapshot={snapshot} role={role} actorId={actorId} onAdvance={onAdvance} />
+        <section className="multiplayer-results"><h1>正在載入原本題目…</h1></section>
       ) : round ? (
         role === 'host' ? (
           <div className="multiplayer-host-stage">

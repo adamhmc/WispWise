@@ -12,6 +12,7 @@ const baseProps = {
   onCreate: vi.fn(),
   onJoin: vi.fn(),
   onStart: vi.fn(),
+  onAutoAdvanceChange: vi.fn(),
   onBack: vi.fn(),
 }
 
@@ -34,19 +35,47 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 1,
+          protocolVersion: 2,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],
+          autoAdvanceSeconds: null,
         }}
       />,
     )
     expect(screen.getByText('WISP42')).toBeTruthy()
     expect(screen.getByText('Ada')).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '開始 10 題挑戰' }).disabled).toBe(false)
+  })
+
+  it('lets the Host enable automatic next-question progression', async () => {
+    const user = userEvent.setup()
+    const onAutoAdvanceChange = vi.fn()
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        entryMode="create"
+        role="host"
+        connectionStatus="connected"
+        onAutoAdvanceChange={onAutoAdvanceChange}
+        snapshot={{
+          protocolVersion: 2,
+          roomCode: 'WISP42',
+          revision: 1,
+          phase: 'lobby',
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('checkbox', { name: '自動進行下一題' }))
+    expect(onAutoAdvanceChange).toHaveBeenCalledWith(true)
   })
 
   it('removes the start action after the room enters play', () => {
@@ -57,13 +86,14 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 1,
+          protocolVersion: 2,
           roomCode: 'WISP42',
           revision: 2,
           phase: 'playing',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],
+          autoAdvanceSeconds: null,
         }}
       />,
     )

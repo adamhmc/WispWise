@@ -49,7 +49,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: '設定' }))
-    await user.click(screen.getByRole('checkbox', { name: /答題解說/ }))
+    await user.click(screen.getByRole('checkbox', { name: '自動換題' }))
 
     expect(window.localStorage.getItem('wispwise.preferences.v1')).toContain('"explanationsEnabled":false')
     expect(screen.queryByText(/歷史戰績/)).toBeNull()
