@@ -70,7 +70,6 @@ import mixed089 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b
 import mixed090 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch20-006.png'
 import mixed091 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-001.png'
 import mixed092 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-002.png'
-import mixed093 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-003.png'
 import mixed094 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-004.png'
 import mixed095 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-005.png'
 import { SEVEN_OBJECT_DECK, WISPWISE_SEVEN_OBJECT_THEME } from '@/domain'
@@ -94,7 +93,7 @@ const images = [
   mixed074, mixed075, mixed076, mixed077, mixed078, mixed079,
   mixed080, mixed081, mixed082, mixed083, mixed084,
   mixed085, mixed086, mixed087, mixed088, mixed089, mixed090,
-  mixed091, mixed092, mixed093, mixed094, mixed095,
+  mixed091, mixed092, mixed094, mixed095,
 ] as const
 
 export const SEVEN_OBJECT_ARTWORK_MANIFEST = validateArtworkManifest({

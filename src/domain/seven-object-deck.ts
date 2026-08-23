@@ -85,7 +85,6 @@ export const SEVEN_OBJECT_QUESTION_SPECS: readonly SevenObjectQuestionSpec[] = [
   { id: 'mixed-090', answer: 'bottle', objects: [{ objectId: 'chair', colorId: 'blue' }, { objectId: 'mouse', colorId: 'white' }, { objectId: 'wizard-hat', colorId: 'yellow' }] },
   { id: 'mixed-091', answer: 'pumpkin', objects: [{ objectId: 'chair', colorId: 'gray' }, { objectId: 'bottle', colorId: 'purple' }, { objectId: 'book', colorId: 'white' }] },
   { id: 'mixed-092', answer: 'pumpkin', objects: [{ objectId: 'ghost', colorId: 'blue' }, { objectId: 'bottle', colorId: 'gray' }, { objectId: 'wizard-hat', colorId: 'red' }] },
-  { id: 'mixed-093', answer: 'mouse', objects: [{ objectId: 'bottle', colorId: 'red' }, { objectId: 'book', colorId: 'purple' }, { objectId: 'pumpkin', colorId: 'white' }] },
   { id: 'mixed-094', answer: 'mouse', objects: [{ objectId: 'ghost', colorId: 'purple' }, { objectId: 'bottle', colorId: 'yellow' }, { objectId: 'book', colorId: 'red' }] },
   { id: 'mixed-095', answer: 'mouse', objects: [{ objectId: 'ghost', colorId: 'yellow' }, { objectId: 'book', colorId: 'red' }, { objectId: 'wizard-hat', colorId: 'green' }] },
 ] as const

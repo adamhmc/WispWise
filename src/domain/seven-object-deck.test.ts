@@ -5,8 +5,8 @@ import { SEVEN_OBJECT_DECK, SEVEN_OBJECT_QUESTION_SPECS } from './seven-object-d
 
 describe('seven-object question deck', () => {
   it('contains unique three-object questions', () => {
-    expect(SEVEN_OBJECT_DECK).toHaveLength(75)
-    expect(new Set(SEVEN_OBJECT_DECK.map(({ card }) => card.id))).toHaveLength(75)
+    expect(SEVEN_OBJECT_DECK).toHaveLength(74)
+    expect(new Set(SEVEN_OBJECT_DECK.map(({ card }) => card.id))).toHaveLength(74)
     expect(SEVEN_OBJECT_DECK.every(({ card }) => cardObjects(card).length === 3)).toBe(true)
   })
 
@@ -26,6 +26,6 @@ describe('seven-object question deck', () => {
   })
 
   it('includes deletion-rule questions', () => {
-    expect(SEVEN_OBJECT_DECK.filter(({ evaluation }) => evaluation.kind === 'exclusion')).toHaveLength(48)
+    expect(SEVEN_OBJECT_DECK.filter(({ evaluation }) => evaluation.kind === 'exclusion')).toHaveLength(47)
   })
 })
