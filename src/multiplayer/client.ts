@@ -1,4 +1,5 @@
 import type { PublicRoomSnapshot, ServerMessage } from './protocol'
+import type { GameObjectCount } from '../domain'
 
 const LOCAL_WORKER_PORT = '8788'
 const REQUEST_TIMEOUT_MS = 8_000
@@ -49,8 +50,11 @@ async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
   }
 }
 
-export function createMultiplayerRoom(): Promise<CreatedRoom> {
-  return apiRequest('/api/rooms', { method: 'POST' })
+export function createMultiplayerRoom(objectCount: GameObjectCount): Promise<CreatedRoom> {
+  return apiRequest('/api/rooms', {
+    method: 'POST',
+    body: JSON.stringify({ objectCount }),
+  })
 }
 
 export function joinMultiplayerRoom(code: string, nickname: string): Promise<JoinedRoom> {

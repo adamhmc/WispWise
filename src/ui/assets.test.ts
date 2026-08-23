@@ -9,8 +9,10 @@ describe('game assets', () => {
       return image as HTMLImageElement
     })
 
-    expect(Object.keys(OBJECT_ASSETS)).toEqual(['ghost', 'chair', 'bottle', 'book', 'mouse'])
-    expect(loaded).toHaveLength(5)
+    expect(Object.keys(OBJECT_ASSETS)).toEqual([
+      'ghost', 'chair', 'bottle', 'book', 'mouse', 'pumpkin', 'wizard-hat',
+    ])
+    expect(loaded).toHaveLength(7)
     expect(images.map(({ src }) => src)).toEqual(Object.values(OBJECT_ASSETS))
   })
 })

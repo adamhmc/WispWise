@@ -11,7 +11,7 @@ import { createRoom, rankPlayers, toPublicSnapshot, transitionRoom, type RoomSta
 const questions = buildCompleteDeck().legal.slice(0, 2)
 
 function roomWithPlayers(count = 2, selectedQuestions: readonly LegalDeckCard[] = questions): RoomState {
-  let state = createRoom({ roomCode: 'WISP42', hostId: 'host-1', questions: selectedQuestions })
+  let state = createRoom({ roomCode: 'WISP42', hostId: 'host-1', objectCount: 5, questions: selectedQuestions })
   for (let index = 1; index <= count; index += 1) {
     const result = transitionRoom(state, {
       type: 'join-player',
@@ -65,7 +65,7 @@ describe('multiplayer room', () => {
   })
 
   it('allows only the host to start and requires a player', () => {
-    const emptyRoom = createRoom({ roomCode: 'WISP42', hostId: 'host-1', questions })
+    const emptyRoom = createRoom({ roomCode: 'WISP42', hostId: 'host-1', objectCount: 5, questions })
     expect(
       transitionRoom(emptyRoom, { type: 'start-game', actorId: 'host-1', atMs: 0 }),
     ).toMatchObject({ ok: false, reason: 'At least one player is required' })

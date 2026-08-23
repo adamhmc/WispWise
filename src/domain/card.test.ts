@@ -25,4 +25,13 @@ describe('card', () => {
       'Card colors must be different',
     )
   })
+
+  it('supports a third object and keeps its canonical ID order-independent', () => {
+    const hat = { objectId: 'wizard-hat', colorId: 'purple' } as const
+    const first = createCard(ghost, bottle, hat)
+    const reordered = createCard(hat, ghost, bottle)
+
+    expect(first.id).toBe(reordered.id)
+    expect(first.third).toEqual(hat)
+  })
 })

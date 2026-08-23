@@ -8,7 +8,7 @@ const imageModules = import.meta.glob<string>(
 
 const objectIds = new Set<string>(WISPWISE_THEME.objects.map(({ objectId }) => objectId))
 const colorIds = new Set<string>(WISPWISE_THEME.colors.map(({ colorId }) => colorId))
-const colorLabels = new Map(WISPWISE_THEME.colors.map(({ colorId, label }) => [colorId, label]))
+const colorLabels = new Map<string, string>(WISPWISE_THEME.colors.map(({ colorId, label }) => [colorId, label]))
 
 function parseSubject(value: string): { objectId: ObjectId; colorId: ColorId } {
   const [objectId, colorId, ...extra] = value.split('-')

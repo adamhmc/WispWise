@@ -1,22 +1,30 @@
-import { CATALOG, type ObjectId } from '@/domain'
+import { catalogForObjectCount, type GameObjectCount, type ObjectId } from '@/domain'
 import { ObjectGlyph } from './ObjectGlyph'
 
 interface AnswerOptionsProps {
   readonly disabled: boolean
+  readonly objectCount?: GameObjectCount
   readonly selectedAnswer?: ObjectId
   readonly correctAnswer?: ObjectId
   readonly onSelect: (objectId: ObjectId) => void
 }
 
-export function AnswerOptions({ disabled, selectedAnswer, correctAnswer, onSelect }: AnswerOptionsProps) {
+export function AnswerOptions({
+  disabled,
+  objectCount = 5,
+  selectedAnswer,
+  correctAnswer,
+  onSelect,
+}: AnswerOptionsProps) {
+  const catalog = catalogForObjectCount(objectCount)
   return (
     <section className="answer-panel" aria-labelledby="answer-options-title">
       <div className="answer-panel__heading">
         <span id="answer-options-title">選擇正確物品</span>
         <span className="answer-panel__hint">每題只能選一次</span>
       </div>
-      <div className="answer-options">
-        {CATALOG.map(({ objectId, fixedColorId, label }, index) => {
+      <div className="answer-options" data-object-count={objectCount}>
+        {catalog.map(({ objectId, fixedColorId, label }, index) => {
           const selected = selectedAnswer === objectId
           const status = correctAnswer === objectId
             ? 'correct'

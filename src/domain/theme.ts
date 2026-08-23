@@ -18,6 +18,9 @@ export interface ThemeDefinition {
   readonly objects: readonly ThemeObjectDefinition[]
 }
 
+export const GAME_OBJECT_COUNTS = [5, 7] as const
+export type GameObjectCount = (typeof GAME_OBJECT_COUNTS)[number]
+
 export function validateThemeDefinition<TTheme extends ThemeDefinition>(theme: TTheme): TTheme {
   if (!theme.id.trim() || !theme.label.trim()) throw new Error('Theme requires an id and label')
   if (theme.objects.length < 3) throw new Error('Theme requires at least three objects')
@@ -39,21 +42,44 @@ export function validateThemeDefinition<TTheme extends ThemeDefinition>(theme: T
   return theme
 }
 
+const CLASSIC_COLORS = [
+  { colorId: 'white', label: '白色', value: '#ffffff' },
+  { colorId: 'red', label: '紅色', value: '#ff6268' },
+  { colorId: 'green', label: '綠色', value: '#58d27a' },
+  { colorId: 'blue', label: '藍色', value: '#48c7ef' },
+  { colorId: 'gray', label: '灰色', value: '#667085' },
+] as const
+
+const CLASSIC_OBJECTS = [
+  { objectId: 'ghost', fixedColorId: 'white', label: '鬼', assetKey: 'ghost' },
+  { objectId: 'chair', fixedColorId: 'red', label: '椅子', assetKey: 'chair' },
+  { objectId: 'bottle', fixedColorId: 'green', label: '瓶子', assetKey: 'bottle' },
+  { objectId: 'book', fixedColorId: 'blue', label: '書', assetKey: 'book' },
+  { objectId: 'mouse', fixedColorId: 'gray', label: '老鼠', assetKey: 'mouse' },
+] as const
+
 export const WISPWISE_THEME = validateThemeDefinition({
   id: 'haunted-house',
   label: '幽靈古宅',
+  colors: CLASSIC_COLORS,
+  objects: CLASSIC_OBJECTS,
+} as const satisfies ThemeDefinition)
+
+export const WISPWISE_SEVEN_OBJECT_THEME = validateThemeDefinition({
+  id: 'haunted-house-seven',
+  label: '幽靈古宅・七物品',
   colors: [
-    { colorId: 'white', label: '白色', value: '#ffffff' },
-    { colorId: 'red', label: '紅色', value: '#ff6268' },
-    { colorId: 'green', label: '綠色', value: '#58d27a' },
-    { colorId: 'blue', label: '藍色', value: '#48c7ef' },
-    { colorId: 'gray', label: '灰色', value: '#667085' },
+    ...CLASSIC_COLORS,
+    { colorId: 'yellow', label: '黃色', value: '#f4b928' },
+    { colorId: 'purple', label: '紫色', value: '#a83fe3' },
   ],
   objects: [
-    { objectId: 'ghost', fixedColorId: 'white', label: '鬼', assetKey: 'ghost' },
-    { objectId: 'chair', fixedColorId: 'red', label: '椅子', assetKey: 'chair' },
-    { objectId: 'bottle', fixedColorId: 'green', label: '瓶子', assetKey: 'bottle' },
-    { objectId: 'book', fixedColorId: 'blue', label: '書', assetKey: 'book' },
-    { objectId: 'mouse', fixedColorId: 'gray', label: '老鼠', assetKey: 'mouse' },
+    ...CLASSIC_OBJECTS,
+    { objectId: 'pumpkin', fixedColorId: 'yellow', label: '南瓜', assetKey: 'pumpkin' },
+    { objectId: 'wizard-hat', fixedColorId: 'purple', label: '巫師帽', assetKey: 'wizard-hat' },
   ],
 } as const satisfies ThemeDefinition)
+
+export function themeForObjectCount(objectCount: GameObjectCount) {
+  return objectCount === 7 ? WISPWISE_SEVEN_OBJECT_THEME : WISPWISE_THEME
+}

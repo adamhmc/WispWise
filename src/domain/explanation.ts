@@ -1,4 +1,4 @@
-import type { Card } from './card'
+import { cardObjects, type Card } from './card'
 import type { ValidCardEvaluation } from './evaluate-card'
 import type { ColorId, ObjectId } from './types'
 
@@ -11,8 +11,8 @@ export interface DirectExplanation {
 export interface ExclusionExplanation {
   readonly kind: 'exclusion'
   readonly answer: ObjectId
-  readonly shownObjects: readonly [ObjectId, ObjectId]
-  readonly shownColors: readonly [ColorId, ColorId]
+  readonly shownObjects: readonly ObjectId[]
+  readonly shownColors: readonly ColorId[]
 }
 
 export type AnswerExplanation = DirectExplanation | ExclusionExplanation
@@ -22,7 +22,7 @@ export function createAnswerExplanation(
   evaluation: ValidCardEvaluation,
 ): AnswerExplanation {
   if (evaluation.kind === 'direct') {
-    const matchingObject = [card.left, card.right].find(
+    const matchingObject = cardObjects(card).find(
       ({ objectId }) => objectId === evaluation.answer,
     )
 
@@ -40,7 +40,7 @@ export function createAnswerExplanation(
   return {
     kind: 'exclusion',
     answer: evaluation.answer,
-    shownObjects: [card.left.objectId, card.right.objectId],
-    shownColors: [card.left.colorId, card.right.colorId],
+    shownObjects: cardObjects(card).map(({ objectId }) => objectId),
+    shownColors: cardObjects(card).map(({ colorId }) => colorId),
   }
 }

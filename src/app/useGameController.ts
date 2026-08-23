@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import type { ObjectId } from '@/domain'
+import type { GameObjectCount, ObjectId } from '@/domain'
 import {
   AutoAdvanceController,
   createGameSession,
@@ -30,27 +30,31 @@ export function useGameController() {
     () => new AutoAdvanceController(browserTimer, dispatch, browserClock),
     [],
   )
-  const lastMode = useRef<GameMode>('classic')
+  const lastConfig = useRef<{ mode: GameMode; objectCount: GameObjectCount }>({ mode: 'classic', objectCount: 5 })
 
-  const createFreshSession = useCallback((mode: GameMode) => {
+  const createFreshSession = useCallback((mode: GameMode, objectCount: GameObjectCount) => {
     sessionCounter.current += 1
     return createGameSession({
       id: `local-session-${sessionCounter.current}`,
       explanationsEnabled: preferences.explanationsEnabled,
       random: browserRandomSource,
       mode,
+      objectCount,
     })
   }, [preferences.explanationsEnabled])
 
-  const startGame = useCallback((mode: GameMode = 'classic') => {
+  const startGame = useCallback((mode: GameMode = 'classic', objectCount: GameObjectCount = 5) => {
     lastAudioRecordCount.current = 0
-    lastMode.current = mode
-    dispatch({ type: 'START_GAME', session: createFreshSession(mode) })
+    lastConfig.current = { mode, objectCount }
+    dispatch({ type: 'START_GAME', session: createFreshSession(mode, objectCount) })
   }, [createFreshSession])
 
   const restartGame = useCallback(() => {
     lastAudioRecordCount.current = 0
-    dispatch({ type: 'RESTART_GAME', session: createFreshSession(lastMode.current) })
+    dispatch({
+      type: 'RESTART_GAME',
+      session: createFreshSession(lastConfig.current.mode, lastConfig.current.objectCount),
+    })
   }, [createFreshSession])
 
   const submitAnswer = useCallback((objectId: ObjectId) => {

@@ -12,6 +12,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: '靈機一選' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '開始遊戲' }))
     await user.click(screen.getByRole('button', { name: /單人遊戲/ }))
+    await user.click(screen.getByRole('button', { name: /5 物品經典模式/ }))
     await user.click(screen.getByRole('button', { name: /10 題練習/ }))
 
     expect(screen.getByRole('heading', { name: '先找直接匹配' })).toBeTruthy()
@@ -22,6 +23,26 @@ describe('App', () => {
     await user.click(answerButtons[0])
     expect(screen.getByRole('status')).toBeTruthy()
     expect(answerButtons.every((button) => button.hasAttribute('disabled'))).toBe(true)
+  })
+
+  it('starts seven-object solo mode with seven answer choices', async () => {
+    window.localStorage.setItem('wispwise.preferences.v1', JSON.stringify({
+      muted: false,
+      explanationsEnabled: true,
+      tutorialCompleted: true,
+    }))
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: '開始遊戲' }))
+    await user.click(screen.getByRole('button', { name: /單人遊戲/ }))
+    await user.click(screen.getByRole('button', { name: /7 物品擴充模式/ }))
+    await user.click(screen.getByRole('button', { name: /10 題練習/ }))
+
+    expect(await screen.findByRole('article', { name: '題目卡' })).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /選擇/ })).toHaveLength(7)
+    expect(screen.getByRole('button', { name: '選擇南瓜' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '選擇巫師帽' })).toBeTruthy()
   })
 
   it('opens and closes the complete rules screen', async () => {

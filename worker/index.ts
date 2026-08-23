@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
-import { buildCompleteDeck, selectRound, WISPWISE_THEME } from '../src/domain'
-import { parseClientMessage, ROOM_CODE_ALPHABET } from '../src/multiplayer/protocol'
+import { selectRoundForObjectCount, type GameObjectCount } from '../src/domain'
+import { isGameObjectCount, parseClientMessage, ROOM_CODE_ALPHABET } from '../src/multiplayer/protocol'
 import type { ClientMessage, ServerMessage } from '../src/multiplayer/protocol'
 import {
   createRoom,
@@ -120,7 +120,7 @@ export class GameRoom extends DurableObject<Env> {
         return transitionRoom(room.state, {
           type: 'reset-game',
           actorId: attachment.actorId,
-          questions: selectRound(buildCompleteDeck(WISPWISE_THEME).legal, Math.random),
+          questions: selectRoundForObjectCount(room.state.objectCount ?? 5, Math.random),
         })
       }
       return transitionRoom(room.state, { type: message.type, actorId: attachment.actorId, atMs })
@@ -143,13 +143,20 @@ export class GameRoom extends DurableObject<Env> {
     if (request.method === 'POST' && pathname === '/internal/initialize') {
       if (await this.getRoom()) return json({ error: 'Room already exists' }, 409)
       const body = (await readJson(request)) as Record<string, unknown> | null
-      if (!body || typeof body.roomCode !== 'string' || typeof body.hostId !== 'string' || typeof body.hostToken !== 'string') {
+      if (
+        !body ||
+        typeof body.roomCode !== 'string' ||
+        typeof body.hostId !== 'string' ||
+        typeof body.hostToken !== 'string' ||
+        !isGameObjectCount(body.objectCount)
+      ) {
         return json({ error: 'Invalid initialization request' }, 400)
       }
-      const questions = selectRound(buildCompleteDeck(WISPWISE_THEME).legal, Math.random)
+      const objectCount = body.objectCount as GameObjectCount
+      const questions = selectRoundForObjectCount(objectCount, Math.random)
       const room: StoredRoom = {
         hostToken: body.hostToken,
-        state: createRoom({ roomCode: body.roomCode, hostId: body.hostId, questions }),
+        state: createRoom({ roomCode: body.roomCode, hostId: body.hostId, objectCount, questions }),
       }
       const storedRoom = await this.saveRoom(room)
       return json({
@@ -246,7 +253,7 @@ export class GameRoom extends DurableObject<Env> {
             ? transitionRoom(room.state, {
                 type: 'reset-game',
                 actorId: room.state.hostId,
-                questions: selectRound(buildCompleteDeck(WISPWISE_THEME).legal, Math.random),
+                questions: selectRoundForObjectCount(room.state.objectCount ?? 5, Math.random),
               })
           : transitionRoom(room.state, {
               type: message.type,
@@ -375,6 +382,8 @@ export default {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/rooms') {
+      const body = (await readJson(request)) as Record<string, unknown> | null
+      const objectCount: GameObjectCount = isGameObjectCount(body?.objectCount) ? body.objectCount : 5
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const code = roomCode()
         const stub = env.GAME_ROOMS.getByName(code)
@@ -384,6 +393,7 @@ export default {
             roomCode: code,
             hostId: crypto.randomUUID(),
             hostToken: crypto.randomUUID(),
+            objectCount,
           }),
         })
         if (response.status !== 409) return response

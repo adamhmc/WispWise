@@ -1,5 +1,5 @@
 import { CATALOG } from './catalog'
-import type { Card } from './card'
+import { cardObjects, type Card } from './card'
 import type { CatalogItem, ObjectId } from './types'
 
 export type ValidCardKind = 'direct' | 'exclusion'
@@ -27,7 +27,7 @@ export function findDirectMatches(
   card: Card,
   catalog: readonly CatalogItem[] = CATALOG,
 ): ObjectId[] {
-  return [card.left, card.right]
+  return cardObjects(card)
     .filter(({ objectId, colorId }) => fixedColorIn(catalog, objectId) === colorId)
     .map(({ objectId }) => objectId)
 }
@@ -36,8 +36,9 @@ export function findExclusionCandidates(
   card: Card,
   catalog: readonly CatalogItem[] = CATALOG,
 ): ObjectId[] {
-  const shownObjects = new Set([card.left.objectId, card.right.objectId])
-  const shownColors = new Set([card.left.colorId, card.right.colorId])
+  const objects = cardObjects(card)
+  const shownObjects = new Set(objects.map(({ objectId }) => objectId))
+  const shownColors = new Set(objects.map(({ colorId }) => colorId))
 
   return catalog.filter(
     ({ objectId, fixedColorId }) =>

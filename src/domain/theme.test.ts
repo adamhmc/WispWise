@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateThemeDefinition, WISPWISE_THEME } from './theme'
+import { validateThemeDefinition, WISPWISE_SEVEN_OBJECT_THEME, WISPWISE_THEME } from './theme'
 
 describe('theme definition', () => {
   it('keeps the current five object and color mappings in one definition', () => {
@@ -9,6 +9,18 @@ describe('theme definition', () => {
       ['bottle', 'green'],
       ['book', 'blue'],
       ['mouse', 'gray'],
+    ])
+  })
+
+  it('adds yellow pumpkin and purple wizard hat in seven-object mode', () => {
+    expect(WISPWISE_SEVEN_OBJECT_THEME.objects.map(({ objectId, fixedColorId }) => [objectId, fixedColorId])).toEqual([
+      ['ghost', 'white'],
+      ['chair', 'red'],
+      ['bottle', 'green'],
+      ['book', 'blue'],
+      ['mouse', 'gray'],
+      ['pumpkin', 'yellow'],
+      ['wizard-hat', 'purple'],
     ])
   })
 

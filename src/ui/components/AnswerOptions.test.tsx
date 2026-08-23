@@ -3,6 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { AnswerOptions } from './AnswerOptions'
 
 describe('AnswerOptions', () => {
+  it('shows all seven choices in expanded mode', () => {
+    render(<AnswerOptions objectCount={7} disabled={false} onSelect={vi.fn()} />)
+    expect(screen.getAllByRole('button')).toHaveLength(7)
+    expect(screen.getByRole('button', { name: '選擇南瓜' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '選擇巫師帽' })).toBeTruthy()
+  })
+
   it('renders five named buttons and sends the selected object', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()

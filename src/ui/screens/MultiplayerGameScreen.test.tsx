@@ -10,10 +10,11 @@ const card = createCard(
 
 function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
   return {
-    protocolVersion: 2,
+    protocolVersion: 3,
     roomCode: 'WISP42',
     revision: 2,
     phase,
+    objectCount: 5,
     hostConnected: true,
     serverNowMs: Date.now(),
     players: [
@@ -96,6 +97,24 @@ describe('MultiplayerGameScreen', () => {
     expect(screen.getByRole('status').textContent).toContain('答案已鎖定')
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '選擇椅子' }).disabled).toBe(true)
     expect(screen.queryByText('正確答案')).toBeNull()
+  })
+
+  it('shows seven choices when the Host created an expanded room', () => {
+    render(
+      <MultiplayerGameScreen
+        role="player"
+        actorId="p2"
+        connectionStatus="connected"
+        snapshot={{ ...snapshot('playing'), objectCount: 7 }}
+        snapshotReceivedAtMs={Date.now()}
+        error={null}
+        {...handlers}
+      />,
+    )
+
+    expect(screen.getAllByRole('button', { name: /選擇/ })).toHaveLength(7)
+    expect(screen.getByRole('button', { name: '選擇南瓜' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '選擇巫師帽' })).toBeTruthy()
   })
 
   it('shows round results and lets only the Host advance', () => {

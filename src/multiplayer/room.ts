@@ -1,4 +1,4 @@
-import type { LegalDeckCard, ObjectId } from '../domain'
+import { catalogForObjectCount, type GameObjectCount, type LegalDeckCard, type ObjectId } from '../domain'
 import {
   HOST_RECONNECT_GRACE_MS,
   MAX_ROOM_PLAYERS,
@@ -30,6 +30,7 @@ export interface RoomState {
   readonly hostId: string
   readonly hostConnected: boolean
   readonly phase: RoomPhase
+  readonly objectCount: GameObjectCount
   readonly questions: readonly LegalDeckCard[]
   readonly players: readonly RoomPlayer[]
   readonly roundIndex: number
@@ -83,6 +84,7 @@ export type RoomTransition =
 export function createRoom(options: {
   readonly roomCode: string
   readonly hostId: string
+  readonly objectCount: GameObjectCount
   readonly questions: readonly LegalDeckCard[]
 }): RoomState {
   if (options.questions.length === 0) throw new Error('A room requires at least one question')
@@ -92,6 +94,7 @@ export function createRoom(options: {
     hostId: options.hostId,
     hostConnected: true,
     phase: 'lobby',
+    objectCount: options.objectCount,
     questions: options.questions,
     players: [],
     roundIndex: -1,
@@ -212,6 +215,9 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       const player = state.players.find(({ id }) => id === command.playerId)
       if (!player) return rejected(state, 'Player is not in this room')
       if (!player.connected) return rejected(state, 'Player is disconnected')
+      if (!catalogForObjectCount(state.objectCount ?? 5).some(({ objectId }) => objectId === command.answer)) {
+        return rejected(state, 'Answer is not available in this mode')
+      }
       if (state.submissions.some(({ playerId }) => playerId === command.playerId)) {
         return rejected(state, 'Player already answered')
       }
@@ -351,6 +357,7 @@ export function toPublicSnapshot(state: RoomState, nowMs = Date.now()): PublicRo
     roomCode: state.roomCode,
     revision: state.revision,
     phase: state.phase,
+    objectCount: state.objectCount ?? 5,
     hostConnected: state.hostConnected,
     serverNowMs: nowMs,
     players: state.players.map((player) => ({

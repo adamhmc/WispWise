@@ -11,6 +11,7 @@ interface ApiResponse {
   readonly snapshot?: {
     readonly roomCode: string
     readonly phase: string
+    readonly objectCount: number
     readonly autoAdvanceSeconds?: number | null
     readonly autoAdvanceRemainingMs?: number
     readonly players: readonly { id: string; nickname: string; score: number }[]
@@ -35,6 +36,30 @@ function nextMessage(socket: WebSocket): Promise<Record<string, unknown>> {
 }
 
 describe('multiplayer Worker', () => {
+  it('creates a seven-object room with three-object questions', async () => {
+    const created = await call('/api/rooms', {
+      method: 'POST',
+      body: JSON.stringify({ objectCount: 7 }),
+    })
+    expect(created.response.status).toBe(201)
+    expect(created.body.snapshot?.objectCount).toBe(7)
+
+    const code = created.body.snapshot!.roomCode
+    const joined = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Ada' }),
+    })
+    await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'start-game' }),
+    })
+    const snapshot = await call(`/api/rooms/${code}`)
+    expect(snapshot.body.snapshot?.objectCount).toBe(7)
+    expect(snapshot.body.snapshot?.round).toBeTruthy()
+    expect(joined.body.snapshot?.objectCount).toBe(7)
+  })
+
   it('allows browser CORS preflight requests', async () => {
     const response = await exports.default.fetch(
       new Request('https://example.test/api/rooms', { method: 'OPTIONS' }),

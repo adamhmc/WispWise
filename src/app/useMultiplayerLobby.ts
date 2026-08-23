@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ObjectId } from '@/domain'
+import type { GameObjectCount, ObjectId } from '@/domain'
 import {
   createClientCommandId,
   type AutoAdvanceSeconds,
@@ -120,11 +120,11 @@ export function useMultiplayerLobby() {
     }
   }, [applySnapshot, pollingRoomCode])
 
-  const createRoom = async () => {
+  const createRoom = async (objectCount: GameObjectCount) => {
     setError(null)
     setConnectionStatus('connecting')
     try {
-      const created = await createMultiplayerRoom()
+      const created = await createMultiplayerRoom(objectCount)
       const identity: StoredIdentity = {
         roomCode: created.snapshot.roomCode,
         role: 'host',

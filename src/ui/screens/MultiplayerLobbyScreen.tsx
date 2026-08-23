@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { createRoomInviteUrl, type PublicRoomSnapshot } from '@/multiplayer'
+import type { GameObjectCount } from '@/domain'
 
 interface MultiplayerLobbyScreenProps {
   readonly entryMode: 'create' | 'join'
@@ -10,7 +11,7 @@ interface MultiplayerLobbyScreenProps {
   readonly startPending: boolean
   readonly snapshot: PublicRoomSnapshot | null
   readonly error: string | null
-  readonly onCreate: () => void
+  readonly onCreate: (objectCount: GameObjectCount) => void
   readonly onJoin: (roomCode: string, nickname: string) => void
   readonly onStart: () => void
   readonly onAutoAdvanceChange: (enabled: boolean) => void
@@ -34,6 +35,7 @@ export function MultiplayerLobbyScreen({
   const [roomCode, setRoomCode] = useState(initialRoomCode)
   const [nickname, setNickname] = useState('')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [objectCount, setObjectCount] = useState<GameObjectCount>(5)
   const inviteUrl = snapshot ? createRoomInviteUrl(window.location.href, snapshot.roomCode) : ''
 
   const submitJoin = (event: FormEvent) => {
@@ -62,7 +64,18 @@ export function MultiplayerLobbyScreen({
           {entryMode === 'create' ? (
             <>
               <p className="multiplayer-lead">這台裝置將作為 Host，放在桌上顯示題目與全場狀態。</p>
-              <button className="primary-button" type="button" onClick={onCreate} disabled={connectionStatus === 'connecting'}>
+              <fieldset className="object-count-setting">
+                <legend>選擇物品數量</legend>
+                <label data-selected={objectCount === 5 || undefined}>
+                  <input type="radio" name="object-count" value="5" checked={objectCount === 5} onChange={() => setObjectCount(5)} />
+                  <strong>5 物品</strong><small>經典推理</small>
+                </label>
+                <label data-selected={objectCount === 7 || undefined}>
+                  <input type="radio" name="object-count" value="7" checked={objectCount === 7} onChange={() => setObjectCount(7)} />
+                  <strong>7 物品</strong><small>擴充圖庫</small>
+                </label>
+              </fieldset>
+              <button className="primary-button" type="button" onClick={() => onCreate(objectCount)} disabled={connectionStatus === 'connecting'}>
                 {connectionStatus === 'connecting' ? '正在建立…' : '產生房間代碼'}
               </button>
             </>
@@ -85,6 +98,7 @@ export function MultiplayerLobbyScreen({
         <button className="text-button multiplayer-back" type="button" onClick={onBack}>← 離開房間</button>
         <p className="eyebrow">WispWise 多人模式</p>
         <h1>{role === 'host' ? '房間已建立' : '等待 Host 開始'}</h1>
+        <p className="room-mode-badge">本房間：{snapshot.objectCount} 物品模式</p>
         <div className="room-code-block"><span>房間代碼</span><strong>{snapshot.roomCode}</strong><small>請其他玩家在手機上輸入此代碼</small></div>
         {role === 'host' && (
           <section className="room-invite" aria-labelledby="room-invite-title">

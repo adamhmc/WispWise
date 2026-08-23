@@ -1,10 +1,11 @@
-import { CATALOG, getFixedColor, validateCatalog } from './catalog'
-import { COLOR_IDS, OBJECT_IDS, type CatalogItem } from './types'
+import { CATALOG, getFixedColor, SEVEN_OBJECT_CATALOG, validateCatalog } from './catalog'
+import { WISPWISE_SEVEN_OBJECT_THEME } from './theme'
+import { CLASSIC_COLOR_IDS, CLASSIC_OBJECT_IDS, type CatalogItem } from './types'
 
 describe('catalog', () => {
   it('contains every object and fixed color exactly once', () => {
-    expect(CATALOG.map(({ objectId }) => objectId)).toEqual(OBJECT_IDS)
-    expect(new Set(CATALOG.map(({ fixedColorId }) => fixedColorId))).toEqual(new Set(COLOR_IDS))
+    expect(CATALOG.map(({ objectId }) => objectId)).toEqual(CLASSIC_OBJECT_IDS)
+    expect(new Set(CATALOG.map(({ fixedColorId }) => fixedColorId))).toEqual(new Set(CLASSIC_COLOR_IDS))
   })
 
   it.each([
@@ -15,6 +16,12 @@ describe('catalog', () => {
     ['mouse', 'gray'],
   ] as const)('maps %s to %s', (objectId, colorId) => {
     expect(getFixedColor(objectId)).toBe(colorId)
+  })
+
+  it('provides a validated seven-object catalog', () => {
+    expect(validateCatalog(SEVEN_OBJECT_CATALOG, WISPWISE_SEVEN_OBJECT_THEME)).toBe(SEVEN_OBJECT_CATALOG)
+    expect(getFixedColor('pumpkin')).toBe('yellow')
+    expect(getFixedColor('wizard-hat')).toBe('purple')
   })
 
   it('rejects a catalog with a duplicated object', () => {

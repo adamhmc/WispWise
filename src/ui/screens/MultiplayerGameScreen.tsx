@@ -260,7 +260,7 @@ export function MultiplayerGameScreen({
             ) : answered ? (
               <p className="waiting-hint" role="status">答案已送出且無法更改，請等待其他玩家。</p>
             ) : null}
-            <AnswerOptions disabled={answered || remainingSeconds === 0} selectedAnswer={selectedAnswer} onSelect={onAnswer} />
+            <AnswerOptions objectCount={snapshot.objectCount} disabled={answered || remainingSeconds === 0} selectedAnswer={selectedAnswer} onSelect={onAnswer} />
           </section>
         )
       ) : <section className="multiplayer-results"><h1>正在載入題目…</h1></section>}

@@ -1,6 +1,6 @@
-import { OBJECT_IDS, type Card, type ObjectId } from '../domain'
+import { GAME_OBJECT_COUNTS, OBJECT_IDS, type Card, type GameObjectCount, type ObjectId } from '../domain'
 
-export const MULTIPLAYER_PROTOCOL_VERSION = 2 as const
+export const MULTIPLAYER_PROTOCOL_VERSION = 3 as const
 export const ROOM_CODE_LENGTH = 6
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export const ROUND_DURATION_MS = 15_000
@@ -55,6 +55,7 @@ export interface PublicRoomSnapshot {
   readonly roomCode: string
   readonly revision: number
   readonly phase: RoomPhase
+  readonly objectCount: GameObjectCount
   readonly hostConnected: boolean
   readonly serverNowMs: number
   readonly players: readonly PublicPlayer[]
@@ -118,6 +119,10 @@ function isObjectId(value: unknown): value is ObjectId {
 
 function isAutoAdvanceSeconds(value: unknown): value is AutoAdvanceSeconds {
   return typeof value === 'number' && (AUTO_ADVANCE_SECONDS_OPTIONS as readonly number[]).includes(value)
+}
+
+export function isGameObjectCount(value: unknown): value is GameObjectCount {
+  return typeof value === 'number' && (GAME_OBJECT_COUNTS as readonly number[]).includes(value)
 }
 
 export function parseClientMessage(value: unknown): ClientMessage | null {

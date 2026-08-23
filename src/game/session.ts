@@ -1,4 +1,11 @@
-import { buildCompleteDeck, selectRound, shuffle, type LegalDeckCard, type ObjectId } from '@/domain'
+import {
+  legalDeckForObjectCount,
+  selectRound,
+  shuffle,
+  type GameObjectCount,
+  type LegalDeckCard,
+  type ObjectId,
+} from '@/domain'
 import type { RandomSource } from '@/ports'
 
 export interface AnswerRecord {
@@ -15,6 +22,7 @@ export interface AnswerRecord {
 export interface GameSession {
   readonly id: string
   readonly mode: GameMode
+  readonly objectCount: GameObjectCount
   readonly questions: readonly LegalDeckCard[]
   readonly records: readonly AnswerRecord[]
   readonly explanationsEnabled: boolean
@@ -30,6 +38,7 @@ export interface CreateGameSessionOptions {
   readonly explanationsEnabled: boolean
   readonly random: RandomSource
   readonly mode?: GameMode
+  readonly objectCount?: GameObjectCount
   readonly legalDeck?: readonly LegalDeckCard[]
 }
 
@@ -38,15 +47,19 @@ export function createGameSession({
   explanationsEnabled,
   random,
   mode = 'classic',
-  legalDeck = buildCompleteDeck().legal,
+  objectCount = 5,
+  legalDeck = legalDeckForObjectCount(objectCount),
 }: CreateGameSessionOptions): GameSession {
   return {
     id,
     mode,
+    objectCount,
     explanationsEnabled: mode === 'timed' ? false : explanationsEnabled,
     questions: mode === 'timed'
       ? shuffle(legalDeck, () => random.next())
-      : selectRound(legalDeck, () => random.next()),
+      : objectCount === 5
+        ? selectRound(legalDeck, () => random.next())
+        : shuffle(legalDeck, () => random.next()).slice(0, 10),
     records: [],
   }
 }

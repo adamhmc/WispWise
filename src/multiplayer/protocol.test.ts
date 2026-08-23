@@ -25,6 +25,15 @@ describe('parseClientMessage', () => {
     })
   })
 
+  it('accepts both expansion objects as answers', () => {
+    expect(parseClientMessage({
+      type: 'submit-answer',
+      commandId: 'command-2',
+      roundId: 'round-1',
+      answer: 'wizard-hat',
+    })).toMatchObject({ answer: 'wizard-hat' })
+  })
+
   it.each([
     [{ type: 'set-auto-advance', seconds: null }, { type: 'set-auto-advance', seconds: null }],
     [{ type: 'set-auto-advance', seconds: 3 }, { type: 'set-auto-advance', seconds: 3 }],

@@ -17,6 +17,16 @@ const baseProps = {
 }
 
 describe('MultiplayerLobbyScreen', () => {
+  it('lets a Host create either a five- or seven-object room', async () => {
+    const user = userEvent.setup()
+    const onCreate = vi.fn()
+    render(<MultiplayerLobbyScreen {...baseProps} entryMode="create" onCreate={onCreate} />)
+
+    await user.click(screen.getByRole('radio', { name: /7 物品/ }))
+    await user.click(screen.getByRole('button', { name: '產生房間代碼' }))
+    expect(onCreate).toHaveBeenCalledWith(7)
+  })
+
   it('submits a normalized room code and nickname', async () => {
     const user = userEvent.setup()
     const onJoin = vi.fn()
@@ -40,10 +50,11 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 2,
+          protocolVersion: 3,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
+          objectCount: 5,
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],
@@ -53,6 +64,7 @@ describe('MultiplayerLobbyScreen', () => {
     )
     expect(screen.getByText('WISP42')).toBeTruthy()
     expect(screen.getByText('Ada')).toBeTruthy()
+    expect(screen.getByText('本房間：5 物品模式')).toBeTruthy()
     expect(screen.getByLabelText('加入房間 QR Code')).toBeTruthy()
     expect(screen.getByRole('button', { name: '複製加入連結' })).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '開始 10 題挑戰' }).disabled).toBe(false)
@@ -69,10 +81,11 @@ describe('MultiplayerLobbyScreen', () => {
         connectionStatus="connected"
         onAutoAdvanceChange={onAutoAdvanceChange}
         snapshot={{
-          protocolVersion: 2,
+          protocolVersion: 3,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
+          objectCount: 5,
           hostConnected: true,
           serverNowMs: 0,
           players: [],
@@ -93,10 +106,11 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 2,
+          protocolVersion: 3,
           roomCode: 'WISP42',
           revision: 2,
           phase: 'playing',
+          objectCount: 5,
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],

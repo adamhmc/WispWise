@@ -13,6 +13,7 @@ import { TutorialScreen } from '@/ui/screens/TutorialScreen'
 import { preloadGameAssets } from '@/ui/assets'
 import { clearRoomInviteFromUrl, invitedRoomCodeFromUrl } from '@/multiplayer'
 import type { GameMode } from '@/game'
+import type { GameObjectCount } from '@/domain'
 
 type UtilityView = 'rules' | 'settings' | 'tutorial' | null
 
@@ -21,29 +22,30 @@ export function App() {
   const game = useGameController()
   const multiplayer = useMultiplayerLobby()
   const [utilityView, setUtilityView] = useState<UtilityView>(null)
-  const [modeView, setModeView] = useState<'game-mode' | 'solo-mode' | 'multiplayer-role' | null>(null)
+  const [modeView, setModeView] = useState<'game-mode' | 'solo-object-count' | 'solo-mode' | 'multiplayer-role' | null>(null)
+  const [selectedObjectCount, setSelectedObjectCount] = useState<GameObjectCount>(5)
   const [multiplayerEntry, setMultiplayerEntry] = useState<'create' | 'join' | null>(
     invitedRoomCode ? 'join' : null,
   )
-  const [startAfterTutorial, setStartAfterTutorial] = useState<GameMode | null>(null)
+  const [startAfterTutorial, setStartAfterTutorial] = useState<{ mode: GameMode; objectCount: GameObjectCount } | null>(null)
 
   useEffect(() => {
     preloadGameAssets()
   }, [])
 
-  const requestStart = (mode: GameMode) => {
+  const requestStart = (mode: GameMode, objectCount: GameObjectCount) => {
     if (!game.preferences.tutorialCompleted) {
-      setStartAfterTutorial(mode)
+      setStartAfterTutorial({ mode, objectCount })
       setUtilityView('tutorial')
       return
     }
-    game.startGame(mode)
+    game.startGame(mode, objectCount)
   }
 
   const finishTutorial = () => {
     game.setPreferences({ ...game.preferences, tutorialCompleted: true })
     setUtilityView(null)
-    if (startAfterTutorial) game.startGame(startAfterTutorial)
+    if (startAfterTutorial) game.startGame(startAfterTutorial.mode, startAfterTutorial.objectCount)
     setStartAfterTutorial(null)
   }
 
@@ -78,13 +80,17 @@ export function App() {
     return (
       <GameModeScreen
         step={modeView}
-        onSolo={() => setModeView('solo-mode')}
-        onClassic={() => { setModeView(null); requestStart('classic') }}
-        onTimed={() => { setModeView(null); requestStart('timed') }}
+        selectedObjectCount={selectedObjectCount}
+        onSolo={() => setModeView('solo-object-count')}
+        onObjectCount={(objectCount) => { setSelectedObjectCount(objectCount); setModeView('solo-mode') }}
+        onClassic={() => { setModeView(null); requestStart('classic', selectedObjectCount) }}
+        onTimed={() => { setModeView(null); requestStart('timed', selectedObjectCount) }}
         onMultiplayer={() => setModeView('multiplayer-role')}
         onCreateRoom={() => { setModeView(null); setMultiplayerEntry('create') }}
         onJoinRoom={() => { setModeView(null); setMultiplayerEntry('join') }}
-        onBack={() => setModeView(modeView === 'game-mode' ? null : 'game-mode')}
+        onBack={() => setModeView(
+          modeView === 'game-mode' ? null : modeView === 'solo-mode' ? 'solo-object-count' : 'game-mode',
+        )}
       />
     )
   }

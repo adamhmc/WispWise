@@ -109,6 +109,7 @@ export function GameScreen({ state, onAnswer, onNext, onExit }: GameScreenProps)
 
       <AnswerOptions
         disabled={state.status !== 'answering'}
+        objectCount={state.session.objectCount}
         selectedAnswer={feedback?.selectedAnswer}
         correctAnswer={feedback?.correctAnswer}
         onSelect={onAnswer}
