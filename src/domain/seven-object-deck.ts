@@ -12,7 +12,7 @@ interface SevenObjectQuestionSpec {
   readonly objects: ThreeObjects
 }
 
-export const SEVEN_OBJECT_QUESTION_SPECS: readonly SevenObjectQuestionSpec[] = [
+export const SEVEN_OBJECT_QUESTION_SPECS = [
   { id: 'seven-001', answer: 'ghost', objects: [{ objectId: 'ghost', colorId: 'white' }, { objectId: 'pumpkin', colorId: 'blue' }, { objectId: 'wizard-hat', colorId: 'red' }] },
   { id: 'seven-002', answer: 'chair', objects: [{ objectId: 'chair', colorId: 'red' }, { objectId: 'bottle', colorId: 'purple' }, { objectId: 'mouse', colorId: 'yellow' }] },
   { id: 'seven-003', answer: 'bottle', objects: [{ objectId: 'bottle', colorId: 'green' }, { objectId: 'book', colorId: 'white' }, { objectId: 'pumpkin', colorId: 'purple' }] },
@@ -86,8 +86,8 @@ export const SEVEN_OBJECT_QUESTION_SPECS: readonly SevenObjectQuestionSpec[] = [
   { id: 'mixed-091', answer: 'pumpkin', objects: [{ objectId: 'chair', colorId: 'gray' }, { objectId: 'bottle', colorId: 'purple' }, { objectId: 'book', colorId: 'white' }] },
   { id: 'mixed-092', answer: 'pumpkin', objects: [{ objectId: 'ghost', colorId: 'blue' }, { objectId: 'bottle', colorId: 'gray' }, { objectId: 'wizard-hat', colorId: 'red' }] },
   { id: 'mixed-094', answer: 'mouse', objects: [{ objectId: 'ghost', colorId: 'purple' }, { objectId: 'bottle', colorId: 'yellow' }, { objectId: 'book', colorId: 'red' }] },
-  { id: 'mixed-095', answer: 'mouse', objects: [{ objectId: 'ghost', colorId: 'yellow' }, { objectId: 'book', colorId: 'red' }, { objectId: 'wizard-hat', colorId: 'green' }] },
-] as const
+  { id: 'mixed-095', answer: 'mouse', objects: [{ objectId: 'chair', colorId: 'blue' }, { objectId: 'bottle', colorId: 'yellow' }, { objectId: 'wizard-hat', colorId: 'white' }] },
+] as const satisfies readonly SevenObjectQuestionSpec[]
 
 function buildQuestion(spec: SevenObjectQuestionSpec): LegalDeckCard {
   const card = createCard(...spec.objects)

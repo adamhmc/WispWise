@@ -47,6 +47,22 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage({ type: 'reset-game' })).toEqual({ type: 'reset-game' })
   })
 
+  it('accepts Host room configuration and player removal commands', () => {
+    expect(parseClientMessage({ type: 'set-object-count', objectCount: 7 })).toEqual({
+      type: 'set-object-count',
+      objectCount: 7,
+    })
+    expect(parseClientMessage({ type: 'kick-player', playerId: 'player-1' })).toEqual({
+      type: 'kick-player',
+      playerId: 'player-1',
+    })
+    expect(parseClientMessage({ type: 'set-player-time-compensation', playerId: 'player-1', seconds: 2.5 })).toEqual({
+      type: 'set-player-time-compensation',
+      playerId: 'player-1',
+      seconds: 2.5,
+    })
+  })
+
   it('keeps full points through 0.5 seconds and then decreases linearly to zero', () => {
     expect(calculateCorrectAnswerPoints(0)).toBe(1_000)
     expect(calculateCorrectAnswerPoints(500)).toBe(1_000)
@@ -60,6 +76,9 @@ describe('parseClientMessage', () => {
     { type: 'join-room', nickname: '  ' },
     { type: 'submit-answer', commandId: '1', roundId: 'round-1', answer: 'purple' },
     { type: 'set-auto-advance', seconds: 4 },
+    { type: 'set-object-count', objectCount: 6 },
+    { type: 'kick-player', playerId: '  ' },
+    { type: 'set-player-time-compensation', playerId: 'player-1', seconds: 5.5 },
     { type: 'unknown' },
   ])('rejects malformed input %#', (message) => {
     expect(parseClientMessage(message)).toBeNull()

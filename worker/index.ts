@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { selectRoundForObjectCount, type GameObjectCount } from '../src/domain'
-import { isGameObjectCount, parseClientMessage, ROOM_CODE_ALPHABET } from '../src/multiplayer/protocol'
+import { parseClientMessage, ROOM_CODE_ALPHABET } from '../src/multiplayer/protocol'
 import type { ClientMessage, ServerMessage } from '../src/multiplayer/protocol'
 import {
   createRoom,
@@ -96,6 +96,16 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
+  private closePlayerConnections(playerId: string): void {
+    for (const socket of this.ctx.getWebSockets(playerId)) {
+      try {
+        socket.close(4003, 'Removed by host')
+      } catch {
+        // The room state remains authoritative if the socket is already closed.
+      }
+    }
+  }
+
   private transitionForMessage(
     room: StoredRoom,
     attachment: SocketAttachment,
@@ -106,13 +116,40 @@ export class GameRoom extends DurableObject<Env> {
       message.type === 'start-game' ||
       message.type === 'advance-round' ||
       message.type === 'reset-game' ||
-      message.type === 'set-auto-advance'
+      message.type === 'set-auto-advance' ||
+      message.type === 'set-object-count' ||
+      message.type === 'set-player-time-compensation' ||
+      message.type === 'kick-player'
     ) {
       if (attachment.role !== 'host') return { ok: false, state: room.state, reason: 'Host authorization required' }
       if (message.type === 'set-auto-advance') {
         return transitionRoom(room.state, {
           type: 'set-auto-advance',
           actorId: attachment.actorId,
+          seconds: message.seconds,
+        })
+      }
+      if (message.type === 'set-object-count') {
+        return transitionRoom(room.state, {
+          type: 'set-object-count',
+          actorId: attachment.actorId,
+          objectCount: message.objectCount,
+          questions: selectRoundForObjectCount(message.objectCount, Math.random),
+        })
+      }
+      if (message.type === 'kick-player') {
+        return transitionRoom(room.state, {
+          type: 'kick-player',
+          actorId: attachment.actorId,
+          playerId: message.playerId,
+          atMs,
+        })
+      }
+      if (message.type === 'set-player-time-compensation') {
+        return transitionRoom(room.state, {
+          type: 'set-player-time-compensation',
+          actorId: attachment.actorId,
+          playerId: message.playerId,
           seconds: message.seconds,
         })
       }
@@ -147,12 +184,11 @@ export class GameRoom extends DurableObject<Env> {
         !body ||
         typeof body.roomCode !== 'string' ||
         typeof body.hostId !== 'string' ||
-        typeof body.hostToken !== 'string' ||
-        !isGameObjectCount(body.objectCount)
+        typeof body.hostToken !== 'string'
       ) {
         return json({ error: 'Invalid initialization request' }, 400)
       }
-      const objectCount = body.objectCount as GameObjectCount
+      const objectCount: GameObjectCount = 5
       const questions = selectRoundForObjectCount(objectCount, Math.random)
       const room: StoredRoom = {
         hostToken: body.hostToken,
@@ -240,7 +276,10 @@ export class GameRoom extends DurableObject<Env> {
         message.type === 'start-game' ||
         message.type === 'advance-round' ||
         message.type === 'reset-game' ||
-        message.type === 'set-auto-advance'
+        message.type === 'set-auto-advance' ||
+        message.type === 'set-object-count' ||
+        message.type === 'set-player-time-compensation' ||
+        message.type === 'kick-player'
       ) {
         if (token !== room.hostToken) return json({ error: 'Host authorization required' }, 401)
         transition = message.type === 'set-auto-advance'
@@ -249,6 +288,27 @@ export class GameRoom extends DurableObject<Env> {
               actorId: room.state.hostId,
               seconds: message.seconds,
             })
+          : message.type === 'set-object-count'
+            ? transitionRoom(room.state, {
+                type: 'set-object-count',
+                actorId: room.state.hostId,
+                objectCount: message.objectCount,
+                questions: selectRoundForObjectCount(message.objectCount, Math.random),
+              })
+            : message.type === 'kick-player'
+              ? transitionRoom(room.state, {
+                  type: 'kick-player',
+                  actorId: room.state.hostId,
+                  playerId: message.playerId,
+                  atMs,
+                })
+            : message.type === 'set-player-time-compensation'
+              ? transitionRoom(room.state, {
+                  type: 'set-player-time-compensation',
+                  actorId: room.state.hostId,
+                  playerId: message.playerId,
+                  seconds: message.seconds,
+                })
           : message.type === 'reset-game'
             ? transitionRoom(room.state, {
                 type: 'reset-game',
@@ -275,6 +335,7 @@ export class GameRoom extends DurableObject<Env> {
       if (!transition.ok) return json({ error: transition.reason }, 409)
       const next = applyTransition(room, transition)
       await this.saveRoom(next)
+      if (message.type === 'kick-player') this.closePlayerConnections(message.playerId)
       this.broadcast({ type: 'room-snapshot', snapshot: toPublicSnapshot(next.state) })
       return json({ snapshot: toPublicSnapshot(next.state) })
     }
@@ -342,6 +403,7 @@ export class GameRoom extends DurableObject<Env> {
     }
     const next = applyTransition(room, transition)
     await this.saveRoom(next)
+    if (message.type === 'kick-player') this.closePlayerConnections(message.playerId)
     if (message.type === 'submit-answer') {
       socket.send(JSON.stringify({ type: 'answer-accepted', commandId: message.commandId } satisfies ServerMessage))
     }
@@ -382,8 +444,6 @@ export default {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/rooms') {
-      const body = (await readJson(request)) as Record<string, unknown> | null
-      const objectCount: GameObjectCount = isGameObjectCount(body?.objectCount) ? body.objectCount : 5
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const code = roomCode()
         const stub = env.GAME_ROOMS.getByName(code)
@@ -393,7 +453,6 @@ export default {
             roomCode: code,
             hostId: crypto.randomUUID(),
             hostToken: crypto.randomUUID(),
-            objectCount,
           }),
         })
         if (response.status !== 409) return response

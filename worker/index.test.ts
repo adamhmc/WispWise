@@ -14,9 +14,16 @@ interface ApiResponse {
     readonly objectCount: number
     readonly autoAdvanceSeconds?: number | null
     readonly autoAdvanceRemainingMs?: number
-    readonly players: readonly { id: string; nickname: string; score: number }[]
+    readonly players: readonly { id: string; nickname: string; score: number; timeCompensationMs: number }[]
     readonly round?: { id: string }
     readonly correctAnswer?: string
+    readonly results?: readonly {
+      readonly playerId: string
+      readonly elapsedMs: number
+      readonly compensationMsApplied: number
+      readonly scoringElapsedMs: number
+      readonly pointsAwarded: number
+    }[]
   }
 }
 
@@ -36,15 +43,20 @@ function nextMessage(socket: WebSocket): Promise<Record<string, unknown>> {
 }
 
 describe('multiplayer Worker', () => {
-  it('creates a seven-object room with three-object questions', async () => {
-    const created = await call('/api/rooms', {
-      method: 'POST',
-      body: JSON.stringify({ objectCount: 7 }),
-    })
+  it('creates a room first and then lets the Host configure seven-object mode', async () => {
+    const created = await call('/api/rooms', { method: 'POST', body: JSON.stringify({}) })
     expect(created.response.status).toBe(201)
-    expect(created.body.snapshot?.objectCount).toBe(7)
+    expect(created.body.snapshot?.objectCount).toBe(5)
 
     const code = created.body.snapshot!.roomCode
+    const configured = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'set-object-count', objectCount: 7 }),
+    })
+    expect(configured.response.status).toBe(200)
+    expect(configured.body.snapshot?.objectCount).toBe(7)
+
     const joined = await call(`/api/rooms/${code}/join`, {
       method: 'POST',
       body: JSON.stringify({ nickname: 'Ada' }),
@@ -58,6 +70,77 @@ describe('multiplayer Worker', () => {
     expect(snapshot.body.snapshot?.objectCount).toBe(7)
     expect(snapshot.body.snapshot?.round).toBeTruthy()
     expect(joined.body.snapshot?.objectCount).toBe(7)
+  })
+
+  it('lets an authorized Host remove a player from the room', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    const code = created.body.snapshot!.roomCode
+    const first = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Ada' }),
+    })
+    const second = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Lin' }),
+    })
+
+    const unauthorized = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${first.body.reconnectToken}` },
+      body: JSON.stringify({ type: 'kick-player', playerId: second.body.playerId }),
+    })
+    expect(unauthorized.response.status).toBe(401)
+
+    const kicked = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'kick-player', playerId: second.body.playerId }),
+    })
+    expect(kicked.response.status).toBe(200)
+    expect(kicked.body.snapshot?.players).toEqual([
+      expect.objectContaining({ id: first.body.playerId, nickname: 'Ada' }),
+    ])
+  })
+
+  it('lets the Host assign player time compensation and applies it on every answer', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    const code = created.body.snapshot!.roomCode
+    const joined = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Ada' }),
+    })
+
+    const configured = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({
+        type: 'set-player-time-compensation',
+        playerId: joined.body.playerId,
+        seconds: 2.5,
+      }),
+    })
+    expect(configured.response.status).toBe(200)
+    expect(configured.body.snapshot?.players[0].timeCompensationMs).toBe(2_500)
+
+    await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'start-game' }),
+    })
+    const answered = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${joined.body.reconnectToken}` },
+      body: JSON.stringify({
+        type: 'submit-answer',
+        commandId: 'compensated-answer',
+        roundId: 'round-1',
+        answer: 'ghost',
+      }),
+    })
+
+    const result = answered.body.snapshot?.results?.[0]
+    expect(result?.compensationMsApplied).toBe(2_500)
+    expect(result?.scoringElapsedMs).toBe(Math.max(0, (result?.elapsedMs ?? 0) - 2_500))
   })
 
   it('allows browser CORS preflight requests', async () => {
@@ -233,6 +316,47 @@ describe('multiplayer Worker', () => {
     await expect(nextMessage(socket)).resolves.toMatchObject({
       type: 'room-snapshot',
       snapshot: { phase: 'results' },
+    })
+    socket.close(1000, 'test complete')
+  })
+
+  it('applies Host configuration and player removal over WebSocket', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    const code = created.body.snapshot!.roomCode
+    const joined = await call(`/api/rooms/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ nickname: 'Ada' }),
+    })
+    const response = await exports.default.fetch(
+      new Request(
+        `https://example.test/api/rooms/${code}/connect?role=host&token=${created.body.hostToken}`,
+        { headers: { Upgrade: 'websocket' } },
+      ),
+    )
+    const socket = response.webSocket!
+    socket.accept()
+    await nextMessage(socket)
+
+    socket.send(JSON.stringify({ type: 'set-object-count', objectCount: 7 }))
+    await expect(nextMessage(socket)).resolves.toMatchObject({
+      type: 'room-snapshot',
+      snapshot: { objectCount: 7 },
+    })
+
+    socket.send(JSON.stringify({
+      type: 'set-player-time-compensation',
+      playerId: joined.body.playerId,
+      seconds: 1.5,
+    }))
+    await expect(nextMessage(socket)).resolves.toMatchObject({
+      type: 'room-snapshot',
+      snapshot: { players: [{ id: joined.body.playerId, timeCompensationMs: 1_500 }] },
+    })
+
+    socket.send(JSON.stringify({ type: 'kick-player', playerId: joined.body.playerId }))
+    await expect(nextMessage(socket)).resolves.toMatchObject({
+      type: 'room-snapshot',
+      snapshot: { players: [] },
     })
     socket.close(1000, 'test complete')
   })

@@ -1,5 +1,4 @@
 import type { PublicRoomSnapshot, ServerMessage } from './protocol'
-import type { GameObjectCount } from '../domain'
 
 const LOCAL_WORKER_PORT = '8788'
 const REQUEST_TIMEOUT_MS = 8_000
@@ -50,10 +49,10 @@ async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
   }
 }
 
-export function createMultiplayerRoom(objectCount: GameObjectCount): Promise<CreatedRoom> {
+export function createMultiplayerRoom(): Promise<CreatedRoom> {
   return apiRequest('/api/rooms', {
     method: 'POST',
-    body: JSON.stringify({ objectCount }),
+    body: JSON.stringify({}),
   })
 }
 
@@ -78,7 +77,7 @@ export function connectToMultiplayerRoom(options: {
   readonly token: string
   readonly onMessage: (message: ServerMessage) => void
   readonly onOpen: () => void
-  readonly onClose: () => void
+  readonly onClose: (event: CloseEvent) => void
 }): WebSocket {
   const url = new URL(`${API_BASE_URL}/api/rooms/${options.roomCode}/connect`)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'

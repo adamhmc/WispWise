@@ -51,12 +51,12 @@ import mixed070 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b
 import mixed071 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch17-003.png'
 import mixed072 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch17-004.png'
 import mixed073 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch17-005.png'
-import mixed074 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-001.png'
-import mixed075 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-002.png'
+import mixed074 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-006.png'
+import mixed075 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-004.png'
 import mixed076 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-003.png'
-import mixed077 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-004.png'
-import mixed078 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-005.png'
-import mixed079 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-006.png'
+import mixed077 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-005.png'
+import mixed078 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-002.png'
+import mixed079 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch18-001.png'
 import mixed080 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch19-001.png'
 import mixed081 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch19-002.png'
 import mixed082 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch19-003.png'
@@ -72,29 +72,87 @@ import mixed091 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b
 import mixed092 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-002.png'
 import mixed094 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-004.png'
 import mixed095 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-005.png'
-import { SEVEN_OBJECT_DECK, WISPWISE_SEVEN_OBJECT_THEME } from '@/domain'
+import { SEVEN_OBJECT_DECK, SEVEN_OBJECT_QUESTION_SPECS, WISPWISE_SEVEN_OBJECT_THEME } from '@/domain'
 import { validateArtworkManifest, type CardArtworkManifest } from './types'
 
-const images = [
-  seven001, seven002, seven003, seven004, seven005,
-  seven006, seven007, seven008, seven009, seven010,
-  seven011, seven012, seven013, seven014, seven015,
-  seven016, seven017, seven018, seven019, seven020,
-  mixed021, mixed022, mixed023, mixed025, mixed028, mixed029,
-  mixed031, mixed033, mixed037, mixed038,
-  mixed039, mixed040, mixed041, mixed042,
-  mixed049, mixed050, mixed051, mixed052,
-  mixed053, mixed054, mixed055, mixed056,
-  mixed057, mixed058, mixed060,
-  mixed064,
-  mixed065,
-  mixed066, mixed068,
-  mixed070, mixed071, mixed072, mixed073,
-  mixed074, mixed075, mixed076, mixed077, mixed078, mixed079,
-  mixed080, mixed081, mixed082, mixed083, mixed084,
-  mixed085, mixed086, mixed087, mixed088, mixed089, mixed090,
-  mixed091, mixed092, mixed094, mixed095,
-] as const
+type SevenObjectQuestionId = (typeof SEVEN_OBJECT_QUESTION_SPECS)[number]['id']
+
+export const SEVEN_OBJECT_ARTWORK_BY_QUESTION_ID = {
+  'seven-001': seven001,
+  'seven-002': seven002,
+  'seven-003': seven003,
+  'seven-004': seven004,
+  'seven-005': seven005,
+  'seven-006': seven006,
+  'seven-007': seven007,
+  'seven-008': seven008,
+  'seven-009': seven009,
+  'seven-010': seven010,
+  'seven-011': seven011,
+  'seven-012': seven012,
+  'seven-013': seven013,
+  'seven-014': seven014,
+  'seven-015': seven015,
+  'seven-016': seven016,
+  'seven-017': seven017,
+  'seven-018': seven018,
+  'seven-019': seven019,
+  'seven-020': seven020,
+  'mixed-021': mixed021,
+  'mixed-022': mixed022,
+  'mixed-023': mixed023,
+  'mixed-025': mixed025,
+  'mixed-028': mixed028,
+  'mixed-029': mixed029,
+  'mixed-031': mixed031,
+  'mixed-033': mixed033,
+  'mixed-037': mixed037,
+  'mixed-038': mixed038,
+  'mixed-039': mixed039,
+  'mixed-040': mixed040,
+  'mixed-041': mixed041,
+  'mixed-042': mixed042,
+  'mixed-049': mixed049,
+  'mixed-050': mixed050,
+  'mixed-051': mixed051,
+  'mixed-052': mixed052,
+  'mixed-053': mixed053,
+  'mixed-054': mixed054,
+  'mixed-055': mixed055,
+  'mixed-056': mixed056,
+  'mixed-057': mixed057,
+  'mixed-058': mixed058,
+  'mixed-060': mixed060,
+  'mixed-064': mixed064,
+  'mixed-065': mixed065,
+  'mixed-066': mixed066,
+  'mixed-068': mixed068,
+  'mixed-070': mixed070,
+  'mixed-071': mixed071,
+  'mixed-072': mixed072,
+  'mixed-073': mixed073,
+  'mixed-074': mixed074,
+  'mixed-075': mixed075,
+  'mixed-076': mixed076,
+  'mixed-077': mixed077,
+  'mixed-078': mixed078,
+  'mixed-079': mixed079,
+  'mixed-080': mixed080,
+  'mixed-081': mixed081,
+  'mixed-082': mixed082,
+  'mixed-083': mixed083,
+  'mixed-084': mixed084,
+  'mixed-085': mixed085,
+  'mixed-086': mixed086,
+  'mixed-087': mixed087,
+  'mixed-088': mixed088,
+  'mixed-089': mixed089,
+  'mixed-090': mixed090,
+  'mixed-091': mixed091,
+  'mixed-092': mixed092,
+  'mixed-094': mixed094,
+  'mixed-095': mixed095,
+} satisfies Record<SevenObjectQuestionId, string>
 
 export const SEVEN_OBJECT_ARTWORK_MANIFEST = validateArtworkManifest({
   themeId: WISPWISE_SEVEN_OBJECT_THEME.id,
@@ -103,7 +161,7 @@ export const SEVEN_OBJECT_ARTWORK_MANIFEST = validateArtworkManifest({
     cardId: card.id,
     variants: [{
       id: `seven-${String(index + 1).padStart(3, '0')}`,
-      imageUrl: images[index],
+      imageUrl: SEVEN_OBJECT_ARTWORK_BY_QUESTION_ID[SEVEN_OBJECT_QUESTION_SPECS[index].id],
       alt: `七物品模式題目，正確答案是${WISPWISE_SEVEN_OBJECT_THEME.objects.find(({ objectId }) => objectId === evaluation.answer)?.label ?? evaluation.answer}`,
       status: 'approved' as const,
     }],

@@ -12,19 +12,22 @@ const baseProps = {
   onCreate: vi.fn(),
   onJoin: vi.fn(),
   onStart: vi.fn(),
+  onObjectCountChange: vi.fn(),
   onAutoAdvanceChange: vi.fn(),
+  onKickPlayer: vi.fn(),
+  onPlayerTimeCompensationChange: vi.fn(),
   onBack: vi.fn(),
 }
 
 describe('MultiplayerLobbyScreen', () => {
-  it('lets a Host create either a five- or seven-object room', async () => {
+  it('creates the room before asking the Host to choose settings', async () => {
     const user = userEvent.setup()
     const onCreate = vi.fn()
     render(<MultiplayerLobbyScreen {...baseProps} entryMode="create" onCreate={onCreate} />)
 
-    await user.click(screen.getByRole('radio', { name: /7 物品/ }))
     await user.click(screen.getByRole('button', { name: '產生房間代碼' }))
-    expect(onCreate).toHaveBeenCalledWith(7)
+    expect(onCreate).toHaveBeenCalledWith()
+    expect(screen.queryByRole('radio', { name: /7 物品/ })).toBeNull()
   })
 
   it('submits a normalized room code and nickname', async () => {
@@ -50,14 +53,14 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 3,
+          protocolVersion: 5,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
           hostConnected: true,
           serverNowMs: 0,
-          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],
+          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
           autoAdvanceSeconds: null,
         }}
       />,
@@ -68,6 +71,128 @@ describe('MultiplayerLobbyScreen', () => {
     expect(screen.getByLabelText('加入房間 QR Code')).toBeTruthy()
     expect(screen.getByRole('button', { name: '複製加入連結' })).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '開始 10 題挑戰' }).disabled).toBe(false)
+    expect(screen.getByRole('radio', { name: /5 物品/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '移除玩家 Ada' })).toBeTruthy()
+  })
+
+  it('lets the Host choose the object mode after creating the room and remove players', async () => {
+    const user = userEvent.setup()
+    const onObjectCountChange = vi.fn()
+    const onKickPlayer = vi.fn()
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        entryMode="create"
+        role="host"
+        connectionStatus="connected"
+        onObjectCountChange={onObjectCountChange}
+        onKickPlayer={onKickPlayer}
+        snapshot={{
+          protocolVersion: 5,
+          roomCode: 'WISP42',
+          revision: 1,
+          phase: 'lobby',
+          objectCount: 5,
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [{ id: 'p1', nickname: 'Ada', connected: false, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('radio', { name: /7 物品/ }))
+    expect(onObjectCountChange).toHaveBeenCalledWith(7)
+    await user.click(screen.getByRole('button', { name: '移除玩家 Ada' }))
+    expect(onKickPlayer).toHaveBeenCalledWith('p1')
+  })
+
+  it('lets the Host assign per-round time compensation to a player', async () => {
+    const user = userEvent.setup()
+    const onPlayerTimeCompensationChange = vi.fn()
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        entryMode="create"
+        role="host"
+        connectionStatus="connected"
+        onPlayerTimeCompensationChange={onPlayerTimeCompensationChange}
+        snapshot={{
+          protocolVersion: 5,
+          roomCode: 'WISP42',
+          revision: 1,
+          phase: 'lobby',
+          objectCount: 5,
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ada 每題時間補償' }), '2.5')
+    expect(onPlayerTimeCompensationChange).toHaveBeenCalledWith('p1', 2.5)
+  })
+
+  it('shows the five standard objects and fixed colors to players in the room', () => {
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        role="player"
+        connectionStatus="connected"
+        snapshot={{
+          protocolVersion: 5,
+          roomCode: 'WISP42',
+          revision: 1,
+          phase: 'lobby',
+          objectCount: 5,
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    const guide = screen.getByRole('region', { name: '本局物品' })
+    expect(guide.textContent).toContain('鬼')
+    expect(guide.textContent).toContain('椅子')
+    expect(guide.textContent).toContain('瓶子')
+    expect(guide.textContent).toContain('書')
+    expect(guide.textContent).toContain('老鼠')
+    expect(guide.textContent).not.toContain('南瓜')
+    expect(guide.textContent).not.toContain('巫師帽')
+    expect(screen.getByRole('img', { name: '白色鬼' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: '灰色老鼠' })).toBeTruthy()
+  })
+
+  it('adds the expansion objects when the room uses seven-object mode', () => {
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        role="player"
+        connectionStatus="connected"
+        snapshot={{
+          protocolVersion: 5,
+          roomCode: 'WISP42',
+          revision: 2,
+          phase: 'lobby',
+          objectCount: 7,
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    const guide = screen.getByRole('region', { name: '本局物品' })
+    expect(guide.textContent).toContain('7 種')
+    expect(guide.textContent).toContain('南瓜')
+    expect(guide.textContent).toContain('巫師帽')
+    expect(screen.getByRole('img', { name: '黃色南瓜' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: '紫色巫師帽' })).toBeTruthy()
   })
 
   it('lets the Host enable automatic next-question progression', async () => {
@@ -81,7 +206,7 @@ describe('MultiplayerLobbyScreen', () => {
         connectionStatus="connected"
         onAutoAdvanceChange={onAutoAdvanceChange}
         snapshot={{
-          protocolVersion: 3,
+          protocolVersion: 5,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
@@ -106,14 +231,14 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 3,
+          protocolVersion: 5,
           roomCode: 'WISP42',
           revision: 2,
           phase: 'playing',
           objectCount: 5,
           hostConnected: true,
           serverNowMs: 0,
-          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0 }],
+          players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
           autoAdvanceSeconds: null,
         }}
       />,

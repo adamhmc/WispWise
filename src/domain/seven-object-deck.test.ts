@@ -19,6 +19,20 @@ describe('seven-object question deck', () => {
     })
   })
 
+  it('keeps the declared answer mapped to the computed direct or exclusion answer', () => {
+    expect(SEVEN_OBJECT_QUESTION_SPECS.map((spec, index) => ({
+      id: spec.id,
+      declaredAnswer: spec.answer,
+      computedAnswer: SEVEN_OBJECT_DECK[index].evaluation.answer,
+      kind: SEVEN_OBJECT_DECK[index].evaluation.kind,
+    }))).toEqual(SEVEN_OBJECT_QUESTION_SPECS.map((spec, index) => ({
+      id: spec.id,
+      declaredAnswer: spec.answer,
+      computedAnswer: spec.answer,
+      kind: SEVEN_OBJECT_DECK[index].evaluation.kind,
+    })))
+  })
+
   it('includes both expansion objects as correct answers', () => {
     const answers = SEVEN_OBJECT_DECK.map(({ evaluation }) => evaluation.answer)
     expect(answers).toContain('pumpkin')

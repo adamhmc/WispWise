@@ -1,6 +1,6 @@
 import { GAME_OBJECT_COUNTS, OBJECT_IDS, type Card, type GameObjectCount, type ObjectId } from '../domain'
 
-export const MULTIPLAYER_PROTOCOL_VERSION = 3 as const
+export const MULTIPLAYER_PROTOCOL_VERSION = 5 as const
 export const ROOM_CODE_LENGTH = 6
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export const ROUND_DURATION_MS = 15_000
@@ -9,8 +9,10 @@ export const CORRECT_ANSWER_POINTS = 1_000
 export const MAX_SCORE_GRACE_MS = 500
 export const MAX_ROOM_PLAYERS = 8
 export const AUTO_ADVANCE_SECONDS_OPTIONS = [3, 5, 10] as const
+export const TIME_COMPENSATION_SECONDS_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5] as const
 
 export type AutoAdvanceSeconds = (typeof AUTO_ADVANCE_SECONDS_OPTIONS)[number]
+export type TimeCompensationSeconds = (typeof TIME_COMPENSATION_SECONDS_OPTIONS)[number]
 
 export function calculateCorrectAnswerPoints(elapsedMs: number): number {
   const normalizedElapsedMs = Math.max(0, elapsedMs)
@@ -30,6 +32,7 @@ export interface PublicPlayer {
   readonly connected: boolean
   readonly score: number
   readonly correctElapsedTotalMs: number
+  readonly timeCompensationMs: number
 }
 
 export interface PublicRound {
@@ -47,6 +50,8 @@ export interface RoundResult {
   readonly answer: ObjectId
   readonly isCorrect: boolean
   readonly elapsedMs: number
+  readonly compensationMsApplied: number
+  readonly scoringElapsedMs: number
   readonly pointsAwarded: number
 }
 
@@ -76,8 +81,21 @@ export type ClientMessage =
     }
   | { readonly type: 'start-game' }
   | {
+      readonly type: 'set-object-count'
+      readonly objectCount: GameObjectCount
+    }
+  | {
       readonly type: 'set-auto-advance'
       readonly seconds: AutoAdvanceSeconds | null
+    }
+  | {
+      readonly type: 'kick-player'
+      readonly playerId: string
+    }
+  | {
+      readonly type: 'set-player-time-compensation'
+      readonly playerId: string
+      readonly seconds: TimeCompensationSeconds
     }
   | {
       readonly type: 'submit-answer'
@@ -121,6 +139,10 @@ function isAutoAdvanceSeconds(value: unknown): value is AutoAdvanceSeconds {
   return typeof value === 'number' && (AUTO_ADVANCE_SECONDS_OPTIONS as readonly number[]).includes(value)
 }
 
+function isTimeCompensationSeconds(value: unknown): value is TimeCompensationSeconds {
+  return typeof value === 'number' && (TIME_COMPENSATION_SECONDS_OPTIONS as readonly number[]).includes(value)
+}
+
 export function isGameObjectCount(value: unknown): value is GameObjectCount {
   return typeof value === 'number' && (GAME_OBJECT_COUNTS as readonly number[]).includes(value)
 }
@@ -146,6 +168,19 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
     case 'set-auto-advance':
       if (value.seconds !== null && !isAutoAdvanceSeconds(value.seconds)) return null
       return { type: 'set-auto-advance', seconds: value.seconds }
+    case 'set-object-count':
+      if (!isGameObjectCount(value.objectCount)) return null
+      return { type: 'set-object-count', objectCount: value.objectCount }
+    case 'kick-player':
+      if (!isNonEmptyString(value.playerId)) return null
+      return { type: 'kick-player', playerId: value.playerId }
+    case 'set-player-time-compensation':
+      if (!isNonEmptyString(value.playerId) || !isTimeCompensationSeconds(value.seconds)) return null
+      return {
+        type: 'set-player-time-compensation',
+        playerId: value.playerId,
+        seconds: value.seconds,
+      }
     case 'submit-answer':
       if (
         !isNonEmptyString(value.commandId) ||

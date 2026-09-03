@@ -15,11 +15,11 @@ describe('multiplayer client', () => {
       }),
     )
 
-    await expect(createMultiplayerRoom(7)).rejects.toThrow('test response')
+    await expect(createMultiplayerRoom()).rejects.toThrow('test response')
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8788/api/rooms',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ objectCount: 7 }) }),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }),
     )
   })
 
@@ -31,7 +31,7 @@ describe('multiplayer client', () => {
       })
     ))
 
-    const request = createMultiplayerRoom(5)
+    const request = createMultiplayerRoom()
     const rejection = expect(request).rejects.toThrow('多人伺服器未回應')
     await vi.advanceTimersByTimeAsync(8_000)
 

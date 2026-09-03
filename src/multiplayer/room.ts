@@ -9,6 +9,7 @@ import {
   type PublicRoomSnapshot,
   type RoomPhase,
   type RoundResult,
+  type TimeCompensationSeconds,
 } from './protocol'
 
 export interface RoomPlayer {
@@ -18,6 +19,7 @@ export interface RoomPlayer {
   readonly connected: boolean
   readonly score: number
   readonly correctElapsedTotalMs: number
+  readonly timeCompensationMs: number
 }
 
 export interface Submission extends RoundResult {
@@ -54,9 +56,22 @@ export type RoomCommand =
     }
   | { readonly type: 'start-game'; readonly actorId: string; readonly atMs: number }
   | {
+      readonly type: 'set-object-count'
+      readonly actorId: string
+      readonly objectCount: GameObjectCount
+      readonly questions: readonly LegalDeckCard[]
+    }
+  | {
       readonly type: 'set-auto-advance'
       readonly actorId: string
       readonly seconds: AutoAdvanceSeconds | null
+    }
+  | { readonly type: 'kick-player'; readonly actorId: string; readonly playerId: string; readonly atMs: number }
+  | {
+      readonly type: 'set-player-time-compensation'
+      readonly actorId: string
+      readonly playerId: string
+      readonly seconds: TimeCompensationSeconds
     }
   | {
       readonly type: 'submit-answer'
@@ -184,6 +199,7 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
             connected: true,
             score: 0,
             correctElapsedTotalMs: 0,
+            timeCompensationMs: 0,
           },
         ],
       })
@@ -206,6 +222,46 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       if (state.phase !== 'lobby') return rejected(state, 'Settings can only change in the lobby')
       return accepted({ ...state, autoAdvanceSeconds: command.seconds })
     }
+    case 'set-object-count': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change settings')
+      if (state.phase !== 'lobby') return rejected(state, 'Settings can only change in the lobby')
+      if (command.questions.length === 0) return rejected(state, 'A room requires at least one question')
+      return accepted({
+        ...state,
+        objectCount: command.objectCount,
+        questions: command.questions,
+        roundIndex: -1,
+        submissions: [],
+      })
+    }
+    case 'kick-player': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can remove players')
+      if (!state.players.some(({ id }) => id === command.playerId)) {
+        return rejected(state, 'Player is not in this room')
+      }
+      let next: RoomState = {
+        ...state,
+        players: state.players.filter(({ id }) => id !== command.playerId),
+        submissions: state.submissions.filter(({ playerId }) => playerId !== command.playerId),
+      }
+      if (state.phase === 'playing' && hasEveryPlayerSubmitted(next)) {
+        next = settleRound(next, command.atMs)
+      }
+      return accepted(next)
+    }
+    case 'set-player-time-compensation': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change player compensation')
+      if (state.phase !== 'lobby' && state.phase !== 'results') {
+        return rejected(state, 'Player compensation can only change between rounds')
+      }
+      if (!state.players.some(({ id }) => id === command.playerId)) {
+        return rejected(state, 'Player is not in this room')
+      }
+      return accepted(updatePlayer(state, command.playerId, (player) => ({
+        ...player,
+        timeCompensationMs: command.seconds * 1_000,
+      })))
+    }
     case 'submit-answer': {
       if (state.phase !== 'playing') return rejected(state, 'Round is not accepting answers')
       if (command.roundId !== roundId(state.roundIndex)) return rejected(state, 'Answer is for another round')
@@ -224,12 +280,16 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       const question = state.questions[state.roundIndex]
       const isCorrect = command.answer === question.evaluation.answer
       const elapsedMs = Math.max(0, command.atMs - (state.roundStartedAtMs ?? command.atMs))
-      const pointsAwarded = isCorrect ? calculateCorrectAnswerPoints(elapsedMs) : 0
+      const compensationMsApplied = player.timeCompensationMs ?? 0
+      const scoringElapsedMs = Math.max(0, elapsedMs - compensationMsApplied)
+      const pointsAwarded = isCorrect ? calculateCorrectAnswerPoints(scoringElapsedMs) : 0
       const submission: Submission = {
         playerId: command.playerId,
         answer: command.answer,
         isCorrect,
         elapsedMs,
+        compensationMsApplied,
+        scoringElapsedMs,
         submittedAtMs: command.atMs,
         pointsAwarded,
       }
@@ -238,7 +298,7 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
         next = updatePlayer(next, command.playerId, (current) => ({
           ...current,
           score: current.score + pointsAwarded,
-          correctElapsedTotalMs: current.correctElapsedTotalMs + elapsedMs,
+          correctElapsedTotalMs: current.correctElapsedTotalMs + scoringElapsedMs,
         }))
       }
       if (hasEveryPlayerSubmitted(next)) next = settleRound(next, command.atMs)
@@ -366,6 +426,7 @@ export function toPublicSnapshot(state: RoomState, nowMs = Date.now()): PublicRo
       connected: player.connected,
       score: player.score,
       correctElapsedTotalMs: player.correctElapsedTotalMs,
+      timeCompensationMs: player.timeCompensationMs ?? 0,
     })),
     autoAdvanceSeconds: state.autoAdvanceSeconds ?? null,
     ...(showResults && state.autoAdvanceAtMs !== undefined
@@ -395,6 +456,8 @@ export function toPublicSnapshot(state: RoomState, nowMs = Date.now()): PublicRo
             answer: submission.answer,
             isCorrect: submission.isCorrect,
             elapsedMs: submission.elapsedMs,
+            compensationMsApplied: submission.compensationMsApplied ?? 0,
+            scoringElapsedMs: submission.scoringElapsedMs ?? submission.elapsedMs,
             pointsAwarded: submission.pointsAwarded,
           })),
         }

@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { createRoomInviteUrl, type PublicRoomSnapshot } from '@/multiplayer'
-import type { GameObjectCount } from '@/domain'
+import { createRoomInviteUrl, type PublicRoomSnapshot, type TimeCompensationSeconds } from '@/multiplayer'
+import { catalogForObjectCount, getFixedColor, type GameObjectCount } from '@/domain'
+import { ObjectGlyph } from '@/ui/components/ObjectGlyph'
+import { TimeCompensationSelect } from '@/ui/components/TimeCompensationSelect'
+import { COLOR_PRESENTATION } from '@/ui/presentation'
 
 interface MultiplayerLobbyScreenProps {
   readonly entryMode: 'create' | 'join'
@@ -11,10 +14,13 @@ interface MultiplayerLobbyScreenProps {
   readonly startPending: boolean
   readonly snapshot: PublicRoomSnapshot | null
   readonly error: string | null
-  readonly onCreate: (objectCount: GameObjectCount) => void
+  readonly onCreate: () => void
   readonly onJoin: (roomCode: string, nickname: string) => void
   readonly onStart: () => void
+  readonly onObjectCountChange: (objectCount: GameObjectCount) => void
   readonly onAutoAdvanceChange: (enabled: boolean) => void
+  readonly onKickPlayer: (playerId: string) => void
+  readonly onPlayerTimeCompensationChange: (playerId: string, seconds: TimeCompensationSeconds) => void
   readonly onBack: () => void
 }
 
@@ -29,13 +35,15 @@ export function MultiplayerLobbyScreen({
   onCreate,
   onJoin,
   onStart,
+  onObjectCountChange,
   onAutoAdvanceChange,
+  onKickPlayer,
+  onPlayerTimeCompensationChange,
   onBack,
 }: MultiplayerLobbyScreenProps) {
   const [roomCode, setRoomCode] = useState(initialRoomCode)
   const [nickname, setNickname] = useState('')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
-  const [objectCount, setObjectCount] = useState<GameObjectCount>(5)
   const inviteUrl = snapshot ? createRoomInviteUrl(window.location.href, snapshot.roomCode) : ''
 
   const submitJoin = (event: FormEvent) => {
@@ -64,18 +72,8 @@ export function MultiplayerLobbyScreen({
           {entryMode === 'create' ? (
             <>
               <p className="multiplayer-lead">這台裝置將作為 Host，放在桌上顯示題目與全場狀態。</p>
-              <fieldset className="object-count-setting">
-                <legend>選擇物品數量</legend>
-                <label data-selected={objectCount === 5 || undefined}>
-                  <input type="radio" name="object-count" value="5" checked={objectCount === 5} onChange={() => setObjectCount(5)} />
-                  <strong>5 物品</strong><small>經典推理</small>
-                </label>
-                <label data-selected={objectCount === 7 || undefined}>
-                  <input type="radio" name="object-count" value="7" checked={objectCount === 7} onChange={() => setObjectCount(7)} />
-                  <strong>7 物品</strong><small>擴充圖庫</small>
-                </label>
-              </fieldset>
-              <button className="primary-button" type="button" onClick={() => onCreate(objectCount)} disabled={connectionStatus === 'connecting'}>
+              <p className="multiplayer-lead">建立後可在房間內選擇物品模式與自動換題設定。</p>
+              <button className="primary-button" type="button" onClick={() => onCreate()} disabled={connectionStatus === 'connecting'}>
                 {connectionStatus === 'connecting' ? '正在建立…' : '產生房間代碼'}
               </button>
             </>
@@ -114,10 +112,50 @@ export function MultiplayerLobbyScreen({
           </section>
         )}
         <div className="connection-pill" data-status={connectionStatus}>{connectionStatus === 'connected' ? '● 已連線' : '○ 連線中斷'}</div>
+        <section className="room-object-guide" aria-labelledby="room-object-guide-title">
+          <div className="room-object-guide__header">
+            <div>
+              <h2 id="room-object-guide-title">本局物品</h2>
+              <p>先記住每個物品的標準造型與固定顏色</p>
+            </div>
+            <span>{snapshot.objectCount} 種</span>
+          </div>
+          <ul>
+            {catalogForObjectCount(snapshot.objectCount).map((item) => {
+              const colorId = getFixedColor(item.objectId)
+
+              return (
+                <li key={item.objectId}>
+                  <ObjectGlyph objectId={item.objectId} colorId={colorId} />
+                  <strong>{item.label}</strong>
+                  <small>{COLOR_PRESENTATION[colorId].label}</small>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
         <div className="player-roster">
           <div className="player-roster__header"><h2>已加入玩家</h2><span>{snapshot.players.length} / 8</span></div>
+          <p className="player-roster__help">補償秒數會從實際作答時間扣除，只影響計分，不延長 15 秒作答上限。</p>
           {snapshot.players.length === 0 ? <p className="empty-roster">還沒有玩家加入</p> : (
-            <ul>{snapshot.players.map((player) => <li key={player.id}><span className="player-avatar">{player.nickname.slice(0, 1)}</span><strong>{player.nickname}</strong><span>{player.connected ? '已連線' : '離線'}</span></li>)}</ul>
+            <ul>{snapshot.players.map((player) => <li key={player.id}>
+              <span className="player-avatar">{player.nickname.slice(0, 1)}</span>
+              <strong>{player.nickname}</strong>
+              <span className="player-roster__status">{player.connected ? '已連線' : '離線'}</span>
+              {role === 'host' && (
+                <>
+                  <TimeCompensationSelect
+                    nickname={player.nickname}
+                    valueMs={player.timeCompensationMs}
+                    onChange={(seconds) => onPlayerTimeCompensationChange(player.id, seconds)}
+                  />
+                  <button className="kick-player-button" type="button" onClick={() => onKickPlayer(player.id)} aria-label={`移除玩家 ${player.nickname}`}>移除</button>
+                </>
+              )}
+              {role !== 'host' && player.timeCompensationMs > 0 && (
+                <span className="time-compensation-badge">計分補償 +{player.timeCompensationMs / 1_000} 秒</span>
+              )}
+            </li>)}</ul>
           )}
         </div>
         {snapshot.phase !== 'lobby' ? (
@@ -127,6 +165,17 @@ export function MultiplayerLobbyScreen({
           </div>
         ) : role === 'host' ? (
           <div className="host-lobby-controls">
+            <fieldset className="object-count-setting">
+              <legend>選擇物品模式</legend>
+              <label data-selected={snapshot.objectCount === 5 || undefined}>
+                <input type="radio" name="object-count" value="5" checked={snapshot.objectCount === 5} onChange={() => onObjectCountChange(5)} />
+                <strong>5 物品</strong><small>經典推理</small>
+              </label>
+              <label data-selected={snapshot.objectCount === 7 || undefined}>
+                <input type="radio" name="object-count" value="7" checked={snapshot.objectCount === 7} onChange={() => onObjectCountChange(7)} />
+                <strong>7 物品</strong><small>擴充圖庫</small>
+              </label>
+            </fieldset>
             <label className="auto-advance-setting">
               <span><strong>自動進行下一題</strong><small>開啟後，結算 5 秒會自動繼續</small></span>
               <input

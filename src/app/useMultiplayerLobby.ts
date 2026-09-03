@@ -5,6 +5,7 @@ import {
   type AutoAdvanceSeconds,
   type PublicRoomSnapshot,
   type ServerMessage,
+  type TimeCompensationSeconds,
 } from '@/multiplayer'
 import {
   MULTIPLAYER_IDENTITY_KEY,
@@ -97,8 +98,19 @@ export function useMultiplayerLobby() {
           .then(applySnapshot)
           .catch(() => undefined)
       },
-      onClose: () => {
+      onClose: (event) => {
         if (generation !== connectionGenerationRef.current || !shouldReconnectRef.current) return
+        if (event.code === 4003) {
+          shouldReconnectRef.current = false
+          sessionStorage.removeItem(MULTIPLAYER_IDENTITY_KEY)
+          latestSnapshotRef.current = null
+          setSnapshot(null)
+          setRole(null)
+          setActorId(null)
+          setConnectionStatus('idle')
+          setError('你已被 Host 移除房間')
+          return
+        }
         setConnectionStatus('disconnected')
         reconnectTimerRef.current = window.setTimeout(() => connect(identity), 1_000)
       },
@@ -120,11 +132,11 @@ export function useMultiplayerLobby() {
     }
   }, [applySnapshot, pollingRoomCode])
 
-  const createRoom = async (objectCount: GameObjectCount) => {
+  const createRoom = async () => {
     setError(null)
     setConnectionStatus('connecting')
     try {
-      const created = await createMultiplayerRoom(objectCount)
+      const created = await createMultiplayerRoom()
       const identity: StoredIdentity = {
         roomCode: created.snapshot.roomCode,
         role: 'host',
@@ -184,6 +196,40 @@ export function useMultiplayerLobby() {
     }
     const seconds: AutoAdvanceSeconds | null = enabled ? 5 : null
     socketRef.current.send(JSON.stringify({ type: 'set-auto-advance', seconds }))
+  }
+
+  const setObjectCount = (objectCount: GameObjectCount) => {
+    setError(null)
+    if (role !== 'host' || snapshot?.phase !== 'lobby' || snapshot.objectCount === objectCount) return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    socketRef.current.send(JSON.stringify({ type: 'set-object-count', objectCount }))
+  }
+
+  const kickPlayer = (playerId: string) => {
+    setError(null)
+    if (role !== 'host' || !snapshot?.players.some(({ id }) => id === playerId)) return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    socketRef.current.send(JSON.stringify({ type: 'kick-player', playerId }))
+  }
+
+  const setPlayerTimeCompensation = (playerId: string, seconds: TimeCompensationSeconds) => {
+    setError(null)
+    if (
+      role !== 'host' ||
+      (snapshot?.phase !== 'lobby' && snapshot?.phase !== 'results') ||
+      !snapshot.players.some(({ id }) => id === playerId)
+    ) return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    socketRef.current.send(JSON.stringify({ type: 'set-player-time-compensation', playerId, seconds }))
   }
 
   const submitAnswer = (answer: ObjectId) => {
@@ -275,7 +321,10 @@ export function useMultiplayerLobby() {
     createRoom,
     joinRoom,
     startGame,
+    setObjectCount,
     setAutoAdvanceEnabled,
+    kickPlayer,
+    setPlayerTimeCompensation,
     submitAnswer,
     advanceRound,
     resetGame,

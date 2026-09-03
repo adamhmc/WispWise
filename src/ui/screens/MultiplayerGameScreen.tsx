@@ -7,10 +7,12 @@ import {
   estimateRemainingSeconds,
   type PublicRound,
   type PublicRoomSnapshot,
+  type TimeCompensationSeconds,
 } from '@/multiplayer'
 import { AnswerOptions } from '@/ui/components/AnswerOptions'
 import { ObjectGlyph } from '@/ui/components/ObjectGlyph'
 import { QuestionCard } from '@/ui/components/QuestionCard'
+import { TimeCompensationSelect } from '@/ui/components/TimeCompensationSelect'
 
 interface MultiplayerGameScreenProps {
   readonly role: 'host' | 'player'
@@ -22,6 +24,8 @@ interface MultiplayerGameScreenProps {
   readonly error: string | null
   readonly onAnswer: (answer: ObjectId) => void
   readonly onAdvance: () => void
+  readonly onKickPlayer: (playerId: string) => void
+  readonly onPlayerTimeCompensationChange: (playerId: string, seconds: TimeCompensationSeconds) => void
   readonly onRematch: () => void
   readonly onExit: () => void
 }
@@ -60,7 +64,7 @@ function MultiplayerHeader({ snapshot, onExit }: { readonly snapshot: PublicRoom
   )
 }
 
-function PlayerProgress({ snapshot }: { readonly snapshot: PublicRoomSnapshot }) {
+function PlayerProgress({ snapshot, onKickPlayer }: { readonly snapshot: PublicRoomSnapshot; readonly onKickPlayer: (playerId: string) => void }) {
   const answered = new Set(snapshot.round?.answeredPlayerIds ?? [])
   return (
     <aside className="multiplayer-roster" aria-label="玩家作答進度">
@@ -71,6 +75,7 @@ function PlayerProgress({ snapshot }: { readonly snapshot: PublicRoomSnapshot })
             <span className="player-avatar" aria-hidden="true" />
             <span><strong>{player.nickname}</strong><small>{player.score} 分</small></span>
             <b>{answered.has(player.id) ? '✓' : '…'}</b>
+            <button className="kick-player-button" type="button" onClick={() => onKickPlayer(player.id)} aria-label={`移除玩家 ${player.nickname}`}>移除</button>
           </li>
         ))}
       </ul>
@@ -84,6 +89,7 @@ function RoundResults({
   role,
   actorId,
   onAdvance,
+  onPlayerTimeCompensationChange,
   autoAdvanceRemainingSeconds,
 }: {
   readonly snapshot: PublicRoomSnapshot
@@ -91,6 +97,7 @@ function RoundResults({
   readonly role: 'host' | 'player'
   readonly actorId: string | null
   readonly onAdvance: () => void
+  readonly onPlayerTimeCompensationChange: (playerId: string, seconds: TimeCompensationSeconds) => void
   readonly autoAdvanceRemainingSeconds: number | null
 }) {
   const correctAnswer = snapshot.correctAnswer
@@ -130,8 +137,26 @@ function RoundResults({
           const result = snapshot.results?.find(({ playerId }) => playerId === player.id)
           return (
             <li key={player.id}>
-              <strong>{player.nickname}</strong>
-              <span>{result ? `${(result.elapsedMs / 1000).toFixed(1)} 秒` : '未作答'}</span>
+              <div className="round-result-list__player">
+                <strong>{player.nickname}</strong>
+                {role === 'host' && (
+                  <TimeCompensationSelect
+                    nickname={player.nickname}
+                    valueMs={player.timeCompensationMs}
+                    onChange={(seconds) => onPlayerTimeCompensationChange(player.id, seconds)}
+                  />
+                )}
+              </div>
+              <span className="round-result-list__timing">
+                {result ? (
+                  <>
+                    <strong>實際 {(result.elapsedMs / 1_000).toFixed(1)} 秒</strong>
+                    <small>
+                      補償 −{(result.compensationMsApplied / 1_000).toFixed(1)} 秒 · 計分 {(result.scoringElapsedMs / 1_000).toFixed(1)} 秒
+                    </small>
+                  </>
+                ) : '未作答'}
+              </span>
               <b data-correct={result?.isCorrect || undefined}>+{result?.pointsAwarded ?? 0}</b>
             </li>
           )
@@ -196,6 +221,8 @@ export function MultiplayerGameScreen({
   error,
   onAnswer,
   onAdvance,
+  onKickPlayer,
+  onPlayerTimeCompensationChange,
   onRematch,
   onExit,
 }: MultiplayerGameScreenProps) {
@@ -229,6 +256,7 @@ export function MultiplayerGameScreen({
           role={role}
           actorId={actorId}
           onAdvance={onAdvance}
+          onPlayerTimeCompensationChange={onPlayerTimeCompensationChange}
           autoAdvanceRemainingSeconds={hasAutoAdvanceCountdown ? autoAdvanceRemainingSeconds : null}
         />
       ) : snapshot.phase === 'results' ? (
@@ -236,7 +264,7 @@ export function MultiplayerGameScreen({
       ) : round ? (
         role === 'host' ? (
           <div className="multiplayer-host-stage">
-            <PlayerProgress snapshot={snapshot} />
+            <PlayerProgress snapshot={snapshot} onKickPlayer={onKickPlayer} />
             <section className="question-stage" aria-labelledby="multiplayer-question-prompt">
               <div className="question-stage__kicker">剩下 {remainingSeconds} 秒</div>
               <QuestionCard card={round.card} />

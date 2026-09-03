@@ -117,6 +117,54 @@ describe('multiplayer room', () => {
     ).toMatchObject({ ok: false, reason: 'Player already answered' })
   })
 
+  it('applies Host-configured time compensation to scoring without changing actual elapsed time', () => {
+    const configured = transitionRoom(roomWithPlayers(1), {
+      type: 'set-player-time-compensation',
+      actorId: 'host-1',
+      playerId: 'player-1',
+      seconds: 2,
+    })
+    if (!configured.ok) throw new Error(configured.reason)
+    expect(configured.state.players[0].timeCompensationMs).toBe(2_000)
+
+    const initial = start(configured.state)
+    const result = transitionRoom(initial, {
+      type: 'submit-answer',
+      playerId: 'player-1',
+      roundId: 'round-1',
+      answer: initial.questions[0].evaluation.answer,
+      atMs: 3_200,
+    })
+    if (!result.ok) throw new Error(result.reason)
+
+    expect(result.state.submissions[0]).toMatchObject({
+      elapsedMs: 2_200,
+      compensationMsApplied: 2_000,
+      scoringElapsedMs: 200,
+      pointsAwarded: CORRECT_ANSWER_POINTS,
+    })
+    expect(result.state.players[0]).toMatchObject({
+      score: CORRECT_ANSWER_POINTS,
+      correctElapsedTotalMs: 200,
+    })
+  })
+
+  it('allows only the Host to change compensation between rounds', () => {
+    expect(transitionRoom(roomWithPlayers(1), {
+      type: 'set-player-time-compensation',
+      actorId: 'player-1',
+      playerId: 'player-1',
+      seconds: 1,
+    })).toMatchObject({ ok: false, reason: 'Only the host can change player compensation' })
+
+    expect(transitionRoom(start(roomWithPlayers(1)), {
+      type: 'set-player-time-compensation',
+      actorId: 'host-1',
+      playerId: 'player-1',
+      seconds: 1,
+    })).toMatchObject({ ok: false, reason: 'Player compensation can only change between rounds' })
+  })
+
   it('settles immediately after every player answers', () => {
     let state = start(roomWithPlayers())
     const correct = state.questions[0].evaluation.answer
@@ -178,6 +226,65 @@ describe('multiplayer room', () => {
     expect(transitionRoom(state, { type: 'auto-advance', atMs: 7_000 })).toMatchObject({
       ok: true,
       state: { phase: 'playing', roundIndex: 1 },
+    })
+  })
+
+  it('lets only the Host configure the object mode while in the lobby', () => {
+    const sevenObjectQuestions = buildCompleteDeck().legal.slice(10, 20)
+    expect(transitionRoom(roomWithPlayers(1), {
+      type: 'set-object-count',
+      actorId: 'player-1',
+      objectCount: 7,
+      questions: sevenObjectQuestions,
+    })).toMatchObject({ ok: false, reason: 'Only the host can change settings' })
+
+    const configured = transitionRoom(roomWithPlayers(1), {
+      type: 'set-object-count',
+      actorId: 'host-1',
+      objectCount: 7,
+      questions: sevenObjectQuestions,
+    })
+    expect(configured).toMatchObject({
+      ok: true,
+      state: { objectCount: 7, questions: sevenObjectQuestions },
+    })
+
+    expect(transitionRoom(start(roomWithPlayers(1)), {
+      type: 'set-object-count',
+      actorId: 'host-1',
+      objectCount: 7,
+      questions: sevenObjectQuestions,
+    })).toMatchObject({ ok: false, reason: 'Settings can only change in the lobby' })
+  })
+
+  it('lets only the Host remove a player and settles when the remaining players have answered', () => {
+    let state = start(roomWithPlayers(2))
+    const answered = transitionRoom(state, {
+      type: 'submit-answer',
+      playerId: 'player-1',
+      roundId: 'round-1',
+      answer: state.questions[0].evaluation.answer,
+      atMs: 1_500,
+    })
+    if (!answered.ok) throw new Error(answered.reason)
+    state = answered.state
+
+    expect(transitionRoom(state, {
+      type: 'kick-player',
+      actorId: 'player-1',
+      playerId: 'player-2',
+      atMs: 2_000,
+    })).toMatchObject({ ok: false, reason: 'Only the host can remove players' })
+
+    const kicked = transitionRoom(state, {
+      type: 'kick-player',
+      actorId: 'host-1',
+      playerId: 'player-2',
+      atMs: 2_000,
+    })
+    expect(kicked).toMatchObject({
+      ok: true,
+      state: { phase: 'results', players: [{ id: 'player-1' }] },
     })
   })
 

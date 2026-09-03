@@ -108,6 +108,8 @@ export function App() {
           error={multiplayer.error}
           onAnswer={multiplayer.submitAnswer}
           onAdvance={multiplayer.advanceRound}
+          onKickPlayer={multiplayer.kickPlayer}
+          onPlayerTimeCompensationChange={multiplayer.setPlayerTimeCompensation}
           onRematch={multiplayer.resetGame}
           onExit={leaveMultiplayer}
         />
@@ -125,7 +127,10 @@ export function App() {
         onCreate={multiplayer.createRoom}
         onJoin={multiplayer.joinRoom}
         onStart={multiplayer.startGame}
+        onObjectCountChange={multiplayer.setObjectCount}
         onAutoAdvanceChange={multiplayer.setAutoAdvanceEnabled}
+        onKickPlayer={multiplayer.kickPlayer}
+        onPlayerTimeCompensationChange={multiplayer.setPlayerTimeCompensation}
         onBack={leaveMultiplayer}
       />
     )

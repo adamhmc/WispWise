@@ -9,7 +9,7 @@ import {
 } from './selectors'
 
 const snapshot = {
-  protocolVersion: 3,
+  protocolVersion: 5,
   roomCode: 'WISP42',
   revision: 2,
   phase: 'results',
@@ -30,7 +30,15 @@ const snapshot = {
     remainingMs: 15_000,
     answeredPlayerIds: ['p1'],
   },
-  results: [{ playerId: 'p1', answer: 'ghost', isCorrect: true, elapsedMs: 1200, pointsAwarded: 1000 }],
+  results: [{
+    playerId: 'p1',
+    answer: 'ghost',
+    isCorrect: true,
+    elapsedMs: 1200,
+    compensationMsApplied: 0,
+    scoringElapsedMs: 1200,
+    pointsAwarded: 1000,
+  }],
 } satisfies PublicRoomSnapshot
 
 describe('multiplayer selectors', () => {
@@ -42,9 +50,9 @@ describe('multiplayer selectors', () => {
 
   it('ranks score first and correct response time second', () => {
     const players = [
-      { id: 'p1', nickname: 'Ada', connected: true, score: 2000, correctElapsedTotalMs: 4000 },
-      { id: 'p2', nickname: 'Lin', connected: true, score: 2000, correctElapsedTotalMs: 3000 },
-      { id: 'p3', nickname: 'Mia', connected: true, score: 1000, correctElapsedTotalMs: 1000 },
+      { id: 'p1', nickname: 'Ada', connected: true, score: 2000, correctElapsedTotalMs: 4000, timeCompensationMs: 0 },
+      { id: 'p2', nickname: 'Lin', connected: true, score: 2000, correctElapsedTotalMs: 3000, timeCompensationMs: 0 },
+      { id: 'p3', nickname: 'Mia', connected: true, score: 1000, correctElapsedTotalMs: 1000, timeCompensationMs: 0 },
     ]
     expect(rankPublicPlayers(players).map(({ id }) => id)).toEqual(['p2', 'p1', 'p3'])
   })

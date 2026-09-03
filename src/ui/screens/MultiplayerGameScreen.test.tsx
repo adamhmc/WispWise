@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createCard } from '@/domain'
 import type { PublicRoomSnapshot } from '@/multiplayer'
 import { MultiplayerGameScreen } from './MultiplayerGameScreen'
@@ -10,7 +11,7 @@ const card = createCard(
 
 function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
   return {
-    protocolVersion: 3,
+    protocolVersion: 5,
     roomCode: 'WISP42',
     revision: 2,
     phase,
@@ -18,8 +19,8 @@ function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
     hostConnected: true,
     serverNowMs: Date.now(),
     players: [
-      { id: 'p1', nickname: 'Ada', connected: true, score: 1000, correctElapsedTotalMs: 1200 },
-      { id: 'p2', nickname: 'Lin', connected: true, score: 0, correctElapsedTotalMs: 0 },
+      { id: 'p1', nickname: 'Ada', connected: true, score: 1000, correctElapsedTotalMs: 200, timeCompensationMs: 1000 },
+      { id: 'p2', nickname: 'Lin', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 },
     ],
     autoAdvanceSeconds: null,
     round: {
@@ -34,13 +35,28 @@ function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
     ...(phase === 'results'
       ? {
           correctAnswer: 'ghost' as const,
-          results: [{ playerId: 'p1', answer: 'ghost' as const, isCorrect: true, elapsedMs: 1200, pointsAwarded: 1000 }],
+          results: [{
+            playerId: 'p1',
+            answer: 'ghost' as const,
+            isCorrect: true,
+            elapsedMs: 1200,
+            compensationMsApplied: 1000,
+            scoringElapsedMs: 200,
+            pointsAwarded: 1000,
+          }],
         }
       : {}),
   }
 }
 
-const handlers = { onAnswer: vi.fn(), onAdvance: vi.fn(), onRematch: vi.fn(), onExit: vi.fn() }
+const handlers = {
+  onAnswer: vi.fn(),
+  onAdvance: vi.fn(),
+  onKickPlayer: vi.fn(),
+  onPlayerTimeCompensationChange: vi.fn(),
+  onRematch: vi.fn(),
+  onExit: vi.fn(),
+}
 
 describe('MultiplayerGameScreen', () => {
   it('shows the question and player answer progress on the Host', () => {
@@ -59,6 +75,7 @@ describe('MultiplayerGameScreen', () => {
     expect(screen.getByRole('article', { name: '題目卡' })).toBeTruthy()
     expect(screen.getByRole('complementary', { name: '玩家作答進度' }).textContent).toContain('Ada')
     expect(screen.queryByRole('button', { name: '選擇鬼' })).toBeNull()
+    expect(screen.getByRole('button', { name: '移除玩家 Lin' })).toBeTruthy()
   })
 
   it('shows answer choices without the card on a player device', () => {
@@ -117,7 +134,9 @@ describe('MultiplayerGameScreen', () => {
     expect(screen.getByRole('button', { name: '選擇巫師帽' })).toBeTruthy()
   })
 
-  it('shows round results and lets only the Host advance', () => {
+  it('shows compensated timing and lets the Host adjust the next round before advancing', async () => {
+    const user = userEvent.setup()
+    const onPlayerTimeCompensationChange = vi.fn()
     const { rerender } = render(
       <MultiplayerGameScreen
         role="host"
@@ -127,11 +146,17 @@ describe('MultiplayerGameScreen', () => {
         snapshotReceivedAtMs={Date.now()}
         error={null}
         {...handlers}
+        onPlayerTimeCompensationChange={onPlayerTimeCompensationChange}
       />,
     )
     expect(screen.getByRole('heading', { name: '正確答案' })).toBeTruthy()
     expect(screen.getByRole('article', { name: '題目卡' })).toBeTruthy()
     expect(screen.getByText('原本題目')).toBeTruthy()
+    expect(screen.getByText('實際 1.2 秒')).toBeTruthy()
+    expect(screen.getByText('補償 −1.0 秒 · 計分 0.2 秒')).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Ada 每題時間補償' })).toBeTruthy()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ada 每題時間補償' }), '2.5')
+    expect(onPlayerTimeCompensationChange).toHaveBeenCalledWith('p1', 2.5)
     expect(screen.getByRole('button', { name: '下一題' })).toBeTruthy()
 
     rerender(
@@ -143,6 +168,7 @@ describe('MultiplayerGameScreen', () => {
         snapshotReceivedAtMs={Date.now()}
         error={null}
         {...handlers}
+        onPlayerTimeCompensationChange={onPlayerTimeCompensationChange}
       />,
     )
     expect(screen.getByRole('heading', { name: '答對了！' })).toBeTruthy()
