@@ -10,13 +10,14 @@ import ghostRedBookGreen from '@/assets/cards/haunted-house/pilot/ghost-red_book
 import ghostRedMouseGreen from '@/assets/cards/haunted-house/pilot/ghost-red_mouse-green.webp'
 import chairWhiteBottleBlue from '@/assets/cards/haunted-house/pilot/chair-white_bottle-blue-v3.webp'
 import { EXPANSION_01_ARTWORK_ENTRIES } from './expansion01'
+import { FIVE_OBJECT_VARIANT_SPECS } from './fiveObjectVariants'
 import { REMAINING_ARTWORK_ENTRIES } from './remainingArtwork'
 import { validateArtworkManifest, type CardArtworkManifest } from './types'
 
 export const CARD_ARTWORK_MANIFEST = validateArtworkManifest({
   themeId: WISPWISE_THEME.id,
-  version: 3,
-  cards: [
+  version: 4,
+  cards: ([
     {
       cardId: 'ghost:white|chair:green' as CardId,
       variants: [{ id: 'pilot-01', imageUrl: ghostWhiteChairGreen, alt: '白色鬼舉起綠色椅子的互動場景', status: 'approved' }],
@@ -59,5 +60,13 @@ export const CARD_ARTWORK_MANIFEST = validateArtworkManifest({
     },
     ...EXPANSION_01_ARTWORK_ENTRIES,
     ...REMAINING_ARTWORK_ENTRIES,
-  ],
+  ] as CardArtworkManifest['cards'][number][]).map((entry) => ({
+    ...entry,
+    variants: [
+      ...entry.variants,
+      ...FIVE_OBJECT_VARIANT_SPECS
+        .filter(({ cardId }) => cardId === entry.cardId)
+        .map(({ variant }) => variant),
+    ],
+  })),
 } satisfies CardArtworkManifest, buildCompleteDeck(WISPWISE_THEME).legal)

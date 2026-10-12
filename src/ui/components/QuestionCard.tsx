@@ -7,12 +7,14 @@ import { ObjectGlyph } from './ObjectGlyph'
 interface QuestionCardProps {
   readonly card: Card
   readonly artwork?: CardArtworkVariant
+  readonly variantSeed?: number
 }
 
 export function QuestionCard({
   card,
-  artwork = selectApprovedArtwork(SEVEN_OBJECT_ARTWORK_MANIFEST, card.id)
-    ?? selectApprovedArtwork(CARD_ARTWORK_MANIFEST, card.id),
+  variantSeed = 0,
+  artwork = selectApprovedArtwork(SEVEN_OBJECT_ARTWORK_MANIFEST, card.id, variantSeed)
+    ?? selectApprovedArtwork(CARD_ARTWORK_MANIFEST, card.id, variantSeed),
 }: QuestionCardProps) {
   return (
     <article className="question-card" aria-label="題目卡" data-artwork={artwork ? 'illustrated' : 'fallback'}>

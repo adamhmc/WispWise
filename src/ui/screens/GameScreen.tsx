@@ -89,7 +89,7 @@ export function GameScreen({ state, onAnswer, onNext, onExit }: GameScreenProps)
 
         <section className="question-stage" aria-labelledby="question-prompt">
           <div className="question-stage__kicker">{timed ? `第 ${timedQuestionNumber} 題` : 'LOOK CLOSELY!'}</div>
-          <QuestionCard card={question.card} />
+          <QuestionCard card={question.card} variantSeed={state.questionIndex} />
           <p id="question-prompt" className="question-prompt">
             {state.status === 'preparing' ? '準備下一題…' : '找出正確的物品！'}
           </p>

@@ -1,5 +1,6 @@
 import { buildCompleteDeck, WISPWISE_THEME } from '@/domain'
 import { CARD_ARTWORK_MANIFEST } from './manifest'
+import { FIVE_OBJECT_VARIANT_SPECS } from './fiveObjectVariants'
 import { selectApprovedArtwork, validateArtworkManifest, type CardArtworkManifest } from './types'
 
 const deck = buildCompleteDeck(WISPWISE_THEME).legal
@@ -17,8 +18,25 @@ describe('card artwork manifest', () => {
     expect(CARD_ARTWORK_MANIFEST.cards.filter(({ cardId }) => kindByCardId.get(cardId) === 'exclusion')).toHaveLength(60)
     expect(CARD_ARTWORK_MANIFEST.cards.every(({ variants }) =>
       variants.length > 0 && variants.every(({ status, imageUrl }) =>
-        status === 'approved' && imageUrl.endsWith('.webp')),
+        status === 'approved' && /\.(webp|jpg)$/.test(imageUrl)),
     )).toBe(true)
+  })
+
+  it('adds twenty visually reviewed variants for each rule type without new logical cards', () => {
+    const legalById = new Map(deck.map(({ card, evaluation }) => [card.id, evaluation]))
+    expect(FIVE_OBJECT_VARIANT_SPECS).toHaveLength(40)
+    expect(new Set(FIVE_OBJECT_VARIANT_SPECS.map(({ cardId }) => cardId)).size).toBe(40)
+    expect(new Set(FIVE_OBJECT_VARIANT_SPECS.map(({ variant }) => variant.imageUrl)).size).toBe(40)
+
+    for (const kind of ['direct', 'exclusion']) {
+      expect(FIVE_OBJECT_VARIANT_SPECS.filter((spec) => spec.kind === kind)).toHaveLength(20)
+    }
+
+    for (const { cardId, kind, answer, variant } of FIVE_OBJECT_VARIANT_SPECS) {
+      expect(legalById.get(cardId)).toMatchObject({ kind, answer })
+      expect(CARD_ARTWORK_MANIFEST.cards.find((entry) => entry.cardId === cardId)?.variants).toContainEqual(variant)
+      expect(selectApprovedArtwork(CARD_ARTWORK_MANIFEST, cardId, 1)).toEqual(variant)
+    }
   })
 
   it('selects approved variants deterministically and ignores drafts', () => {

@@ -115,7 +115,7 @@ function RoundResults({
       <div className="round-review">
         <div className="round-review__card">
           <span>原本題目</span>
-          <QuestionCard card={round.card} />
+          <QuestionCard card={round.card} variantSeed={round.number - 1} />
         </div>
         <div className="round-review__answer">
           {role === 'player' && playerResult && (
@@ -267,7 +267,7 @@ export function MultiplayerGameScreen({
             <PlayerProgress snapshot={snapshot} onKickPlayer={onKickPlayer} />
             <section className="question-stage" aria-labelledby="multiplayer-question-prompt">
               <div className="question-stage__kicker">剩下 {remainingSeconds} 秒</div>
-              <QuestionCard card={round.card} />
+              <QuestionCard card={round.card} variantSeed={round.number - 1} />
               <p id="multiplayer-question-prompt" className="question-prompt">請玩家從手機選擇正確物品！</p>
             </section>
           </div>

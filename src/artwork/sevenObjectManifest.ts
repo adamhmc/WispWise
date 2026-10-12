@@ -25,13 +25,9 @@ import mixed025 from '@/assets/cards/haunted-house/mixed-20-approved/generated-3
 import mixed028 from '@/assets/cards/haunted-house/mixed-20-approved/generated-10cf9dfb-386a-4698-8233-14e313031a9a.png'
 import mixed029 from '@/assets/cards/haunted-house/mixed-20-approved/generated-5e74ef41-2293-47f6-a3ed-55f56aeb3e77.png'
 import mixed031 from '@/assets/cards/haunted-house/mixed-20-approved/generated-cbf7398c-88a5-4a18-bd2b-e58261e342e6.png'
-import mixed033 from '@/assets/cards/haunted-house/mixed-20-approved/generated-6ff6b18e-cead-4421-b585-90b09b8ed0ff.png'
-import mixed037 from '@/assets/cards/haunted-house/mixed-20-approved/generated-cdc81090-9e81-4478-88e4-6728d62c3509.png'
-import mixed038 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b6c1ca73-0f2c-40a4-8995-c279ac94ff42.png'
 import mixed039 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch4-001.png'
 import mixed040 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch4-002.png'
 import mixed041 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch4-003.png'
-import mixed042 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch4-004.png'
 import mixed049 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch7-001.png'
 import mixed050 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch7-002.png'
 import mixed051 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch7-003.png'
@@ -44,7 +40,6 @@ import mixed057 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b
 import mixed058 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch9-002.png'
 import mixed060 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch9-004.png'
 import mixed064 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch13-001.png'
-import mixed065 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch14-001.png'
 import mixed066 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch16-001.png'
 import mixed068 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch16-003.png'
 import mixed070 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch17-002.png'
@@ -72,6 +67,46 @@ import mixed091 from '@/assets/cards/haunted-house/mixed-20-approved/generated-b
 import mixed092 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-002.png'
 import mixed094 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-004.png'
 import mixed095 from '@/assets/cards/haunted-house/mixed-20-approved/generated-batch21-005.png'
+import mixed96 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-096.png'
+import mixed97 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-097.png'
+import mixed98 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-098.png'
+import mixed99 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-099.png'
+import mixed100 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-100.png'
+import mixed101 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-101.png'
+import mixed102 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-102.png'
+import mixed103 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-103.png'
+import mixed104 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-104.png'
+import mixed105 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-105.png'
+import mixed106 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-106.png'
+import mixed107 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-107.png'
+import mixed108 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-108.png'
+import mixed109 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-109.png'
+import mixed110 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-110.png'
+import mixed111 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-111.png'
+import mixed112 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-112.png'
+import mixed113 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-113.png'
+import mixed114 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-114.png'
+import mixed115 from '@/assets/cards/haunted-house/seven-objects/exclusion-batch-2026-10/mixed-115.png'
+import mixed116 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-116.png'
+import mixed117 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-117.png'
+import mixed118 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-118.png'
+import mixed119 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-119.png'
+import mixed120 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-120.png'
+import mixed121 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-121.png'
+import mixed122 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-122.png'
+import mixed123 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-123.png'
+import mixed124 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-124.png'
+import mixed125 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-125.png'
+import mixed126 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-126.png'
+import mixed127 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-127.png'
+import mixed128 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-128.png'
+import mixed129 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-129.png'
+import mixed130 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-130.png'
+import mixed131 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-131.png'
+import mixed132 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-132.png'
+import mixed133 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-133.png'
+import mixed134 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-134.png'
+import mixed135 from '@/assets/cards/haunted-house/seven-objects/direct-batch-2026-10/mixed-135.png'
 import { SEVEN_OBJECT_DECK, SEVEN_OBJECT_QUESTION_SPECS, WISPWISE_SEVEN_OBJECT_THEME } from '@/domain'
 import { validateArtworkManifest, type CardArtworkManifest } from './types'
 
@@ -105,13 +140,9 @@ export const SEVEN_OBJECT_ARTWORK_BY_QUESTION_ID = {
   'mixed-028': mixed028,
   'mixed-029': mixed029,
   'mixed-031': mixed031,
-  'mixed-033': mixed033,
-  'mixed-037': mixed037,
-  'mixed-038': mixed038,
   'mixed-039': mixed039,
   'mixed-040': mixed040,
   'mixed-041': mixed041,
-  'mixed-042': mixed042,
   'mixed-049': mixed049,
   'mixed-050': mixed050,
   'mixed-051': mixed051,
@@ -124,7 +155,6 @@ export const SEVEN_OBJECT_ARTWORK_BY_QUESTION_ID = {
   'mixed-058': mixed058,
   'mixed-060': mixed060,
   'mixed-064': mixed064,
-  'mixed-065': mixed065,
   'mixed-066': mixed066,
   'mixed-068': mixed068,
   'mixed-070': mixed070,
@@ -152,6 +182,46 @@ export const SEVEN_OBJECT_ARTWORK_BY_QUESTION_ID = {
   'mixed-092': mixed092,
   'mixed-094': mixed094,
   'mixed-095': mixed095,
+  'mixed-096': mixed96,
+  'mixed-097': mixed97,
+  'mixed-098': mixed98,
+  'mixed-099': mixed99,
+  'mixed-100': mixed100,
+  'mixed-101': mixed101,
+  'mixed-102': mixed102,
+  'mixed-103': mixed103,
+  'mixed-104': mixed104,
+  'mixed-105': mixed105,
+  'mixed-106': mixed106,
+  'mixed-107': mixed107,
+  'mixed-108': mixed108,
+  'mixed-109': mixed109,
+  'mixed-110': mixed110,
+  'mixed-111': mixed111,
+  'mixed-112': mixed112,
+  'mixed-113': mixed113,
+  'mixed-114': mixed114,
+  'mixed-115': mixed115,
+  'mixed-116': mixed116,
+  'mixed-117': mixed117,
+  'mixed-118': mixed118,
+  'mixed-119': mixed119,
+  'mixed-120': mixed120,
+  'mixed-121': mixed121,
+  'mixed-122': mixed122,
+  'mixed-123': mixed123,
+  'mixed-124': mixed124,
+  'mixed-125': mixed125,
+  'mixed-126': mixed126,
+  'mixed-127': mixed127,
+  'mixed-128': mixed128,
+  'mixed-129': mixed129,
+  'mixed-130': mixed130,
+  'mixed-131': mixed131,
+  'mixed-132': mixed132,
+  'mixed-133': mixed133,
+  'mixed-134': mixed134,
+  'mixed-135': mixed135,
 } satisfies Record<SevenObjectQuestionId, string>
 
 export const SEVEN_OBJECT_ARTWORK_MANIFEST = validateArtworkManifest({

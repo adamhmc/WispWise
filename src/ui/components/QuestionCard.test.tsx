@@ -44,4 +44,15 @@ describe('QuestionCard', () => {
     expect(screen.getByRole('img', { name: '藍色鬼與紅色瓶子的互動場景' })).toBeTruthy()
     expect(screen.queryByRole('img', { name: '藍色鬼' })).toBeNull()
   })
+
+  it('can select a new illustrated scene variant for an existing five-object card', () => {
+    const card = createCard(
+      { objectId: 'ghost', colorId: 'white' },
+      { objectId: 'chair', colorId: 'green' },
+    )
+
+    render(<QuestionCard card={card} variantSeed={1} />)
+
+    expect(screen.getByRole('img', { name: /白鬼與綠椅子.*白鬼推著綠椅子/ })).toBeTruthy()
+  })
 })
