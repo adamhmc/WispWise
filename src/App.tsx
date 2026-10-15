@@ -128,6 +128,7 @@ export function App() {
         onJoin={multiplayer.joinRoom}
         onStart={multiplayer.startGame}
         onObjectCountChange={multiplayer.setObjectCount}
+        onArtworkStyleChange={multiplayer.setArtworkStyle}
         onAutoAdvanceChange={multiplayer.setAutoAdvanceEnabled}
         onKickPlayer={multiplayer.kickPlayer}
         onPlayerTimeCompensationChange={multiplayer.setPlayerTimeCompensation}

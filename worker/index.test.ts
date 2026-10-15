@@ -12,6 +12,7 @@ interface ApiResponse {
     readonly roomCode: string
     readonly phase: string
     readonly objectCount: number
+    readonly artworkStyle: string
     readonly autoAdvanceSeconds?: number | null
     readonly autoAdvanceRemainingMs?: number
     readonly players: readonly { id: string; nickname: string; score: number; timeCompensationMs: number }[]
@@ -70,6 +71,23 @@ describe('multiplayer Worker', () => {
     expect(snapshot.body.snapshot?.objectCount).toBe(7)
     expect(snapshot.body.snapshot?.round).toBeTruthy()
     expect(joined.body.snapshot?.objectCount).toBe(7)
+  })
+
+  it('synchronizes the Host-selected artwork style through the room snapshot', async () => {
+    const created = await call('/api/rooms', { method: 'POST' })
+    expect(created.body.snapshot?.artworkStyle).toBe('classic')
+    const code = created.body.snapshot!.roomCode
+
+    const configured = await call(`/api/rooms/${code}/command`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${created.body.hostToken}` },
+      body: JSON.stringify({ type: 'set-artwork-style', artworkStyle: 'van-gogh' }),
+    })
+
+    expect(configured.response.status).toBe(200)
+    expect(configured.body.snapshot?.artworkStyle).toBe('van-gogh')
+    const snapshot = await call(`/api/rooms/${code}`)
+    expect(snapshot.body.snapshot?.artworkStyle).toBe('van-gogh')
   })
 
   it('lets an authorized Host remove a player from the room', async () => {

@@ -115,7 +115,7 @@ function RoundResults({
       <div className="round-review">
         <div className="round-review__card">
           <span>原本題目</span>
-          <QuestionCard card={round.card} variantSeed={round.number - 1} />
+          <QuestionCard card={round.card} variantSeed={round.number - 1} artworkStyle={snapshot.artworkStyle} />
         </div>
         <div className="round-review__answer">
           {role === 'player' && playerResult && (
@@ -242,7 +242,7 @@ export function MultiplayerGameScreen({
     snapshot.phase === 'results' && snapshot.autoAdvanceRemainingMs !== undefined
 
   return (
-    <main className="game-screen multiplayer-game" data-role={role}>
+    <main className="game-screen multiplayer-game" data-role={role} data-artwork-style={snapshot.artworkStyle}>
       <MultiplayerHeader snapshot={snapshot} onExit={onExit} />
       {connectionStatus !== 'connected' && <div className="multiplayer-connection-warning" role="status">連線中斷，正在等待重新連線…</div>}
       {snapshot.phase === 'paused' ? (
@@ -267,7 +267,7 @@ export function MultiplayerGameScreen({
             <PlayerProgress snapshot={snapshot} onKickPlayer={onKickPlayer} />
             <section className="question-stage" aria-labelledby="multiplayer-question-prompt">
               <div className="question-stage__kicker">剩下 {remainingSeconds} 秒</div>
-              <QuestionCard card={round.card} variantSeed={round.number - 1} />
+              <QuestionCard card={round.card} variantSeed={round.number - 1} artworkStyle={snapshot.artworkStyle} />
               <p id="multiplayer-question-prompt" className="question-prompt">請玩家從手機選擇正確物品！</p>
             </section>
           </div>

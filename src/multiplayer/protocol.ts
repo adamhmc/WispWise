@@ -1,6 +1,14 @@
-import { GAME_OBJECT_COUNTS, OBJECT_IDS, type Card, type GameObjectCount, type ObjectId } from '../domain'
+import {
+  GAME_OBJECT_COUNTS,
+  OBJECT_IDS,
+  isArtworkStyle,
+  type ArtworkStyle,
+  type Card,
+  type GameObjectCount,
+  type ObjectId,
+} from '../domain'
 
-export const MULTIPLAYER_PROTOCOL_VERSION = 5 as const
+export const MULTIPLAYER_PROTOCOL_VERSION = 6 as const
 export const ROOM_CODE_LENGTH = 6
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export const ROUND_DURATION_MS = 15_000
@@ -61,6 +69,7 @@ export interface PublicRoomSnapshot {
   readonly revision: number
   readonly phase: RoomPhase
   readonly objectCount: GameObjectCount
+  readonly artworkStyle: ArtworkStyle
   readonly hostConnected: boolean
   readonly serverNowMs: number
   readonly players: readonly PublicPlayer[]
@@ -83,6 +92,10 @@ export type ClientMessage =
   | {
       readonly type: 'set-object-count'
       readonly objectCount: GameObjectCount
+    }
+  | {
+      readonly type: 'set-artwork-style'
+      readonly artworkStyle: ArtworkStyle
     }
   | {
       readonly type: 'set-auto-advance'
@@ -171,6 +184,9 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
     case 'set-object-count':
       if (!isGameObjectCount(value.objectCount)) return null
       return { type: 'set-object-count', objectCount: value.objectCount }
+    case 'set-artwork-style':
+      if (!isArtworkStyle(value.artworkStyle)) return null
+      return { type: 'set-artwork-style', artworkStyle: value.artworkStyle }
     case 'kick-player':
       if (!isNonEmptyString(value.playerId)) return null
       return { type: 'kick-player', playerId: value.playerId }

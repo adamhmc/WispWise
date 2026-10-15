@@ -11,11 +11,12 @@ const card = createCard(
 
 function snapshot(phase: PublicRoomSnapshot['phase']): PublicRoomSnapshot {
   return {
-    protocolVersion: 5,
+    protocolVersion: 6,
     roomCode: 'WISP42',
     revision: 2,
     phase,
     objectCount: 5,
+    artworkStyle: 'classic',
     hostConnected: true,
     serverNowMs: Date.now(),
     players: [
@@ -76,6 +77,32 @@ describe('MultiplayerGameScreen', () => {
     expect(screen.getByRole('complementary', { name: '玩家作答進度' }).textContent).toContain('Ada')
     expect(screen.queryByRole('button', { name: '選擇鬼' })).toBeNull()
     expect(screen.getByRole('button', { name: '移除玩家 Lin' })).toBeTruthy()
+  })
+
+  it('renders the Host-selected artwork style on the question screen', () => {
+    const styledCard = createCard(
+      { objectId: 'ghost', colorId: 'white' },
+      { objectId: 'chair', colorId: 'green' },
+    )
+    const styledSnapshot = {
+      ...snapshot('playing'),
+      artworkStyle: 'van-gogh' as const,
+      round: { ...snapshot('playing').round!, card: styledCard },
+    }
+
+    render(
+      <MultiplayerGameScreen
+        role="host"
+        actorId={null}
+        connectionStatus="connected"
+        snapshot={styledSnapshot}
+        snapshotReceivedAtMs={Date.now()}
+        error={null}
+        {...handlers}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: '梵谷風格的白鬼推著綠椅子' })).toBeTruthy()
   })
 
   it('shows answer choices without the card on a player device', () => {

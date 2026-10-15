@@ -52,6 +52,10 @@ describe('parseClientMessage', () => {
       type: 'set-object-count',
       objectCount: 7,
     })
+    expect(parseClientMessage({ type: 'set-artwork-style', artworkStyle: 'van-gogh' })).toEqual({
+      type: 'set-artwork-style',
+      artworkStyle: 'van-gogh',
+    })
     expect(parseClientMessage({ type: 'kick-player', playerId: 'player-1' })).toEqual({
       type: 'kick-player',
       playerId: 'player-1',
@@ -77,6 +81,7 @@ describe('parseClientMessage', () => {
     { type: 'submit-answer', commandId: '1', roundId: 'round-1', answer: 'purple' },
     { type: 'set-auto-advance', seconds: 4 },
     { type: 'set-object-count', objectCount: 6 },
+    { type: 'set-artwork-style', artworkStyle: 'watercolor' },
     { type: 'kick-player', playerId: '  ' },
     { type: 'set-player-time-compensation', playerId: 'player-1', seconds: 5.5 },
     { type: 'unknown' },

@@ -74,6 +74,33 @@ describe('multiplayer room', () => {
     ).toMatchObject({ ok: false, reason: 'Only the host can start' })
   })
 
+  it('lets only the Host choose the synchronized artwork style in the lobby', () => {
+    const initial = roomWithPlayers(1)
+    expect(initial.artworkStyle).toBe('classic')
+    expect(transitionRoom(initial, {
+      type: 'set-artwork-style',
+      actorId: 'player-1',
+      artworkStyle: 'van-gogh',
+    })).toMatchObject({ ok: false, reason: 'Only the host can change settings' })
+
+    const configured = transitionRoom(initial, {
+      type: 'set-artwork-style',
+      actorId: 'host-1',
+      artworkStyle: 'van-gogh',
+    })
+    expect(configured).toMatchObject({
+      ok: true,
+      state: { artworkStyle: 'van-gogh' },
+    })
+    if (!configured.ok) return
+    expect(toPublicSnapshot(configured.state)).toMatchObject({ artworkStyle: 'van-gogh' })
+    expect(transitionRoom(start(configured.state), {
+      type: 'set-artwork-style',
+      actorId: 'host-1',
+      artworkStyle: 'classic',
+    })).toMatchObject({ ok: false, reason: 'Settings can only change in the lobby' })
+  })
+
   it('starts a 15 second server-authoritative round', () => {
     const state = start(roomWithPlayers())
     expect(state).toMatchObject({

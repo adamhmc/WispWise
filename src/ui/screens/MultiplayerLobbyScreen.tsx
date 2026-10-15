@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { createRoomInviteUrl, type PublicRoomSnapshot, type TimeCompensationSeconds } from '@/multiplayer'
-import { catalogForObjectCount, getFixedColor, type GameObjectCount } from '@/domain'
+import { catalogForObjectCount, getFixedColor, type ArtworkStyle, type GameObjectCount } from '@/domain'
 import { ObjectGlyph } from '@/ui/components/ObjectGlyph'
 import { TimeCompensationSelect } from '@/ui/components/TimeCompensationSelect'
 import { COLOR_PRESENTATION } from '@/ui/presentation'
@@ -18,6 +18,7 @@ interface MultiplayerLobbyScreenProps {
   readonly onJoin: (roomCode: string, nickname: string) => void
   readonly onStart: () => void
   readonly onObjectCountChange: (objectCount: GameObjectCount) => void
+  readonly onArtworkStyleChange: (artworkStyle: ArtworkStyle) => void
   readonly onAutoAdvanceChange: (enabled: boolean) => void
   readonly onKickPlayer: (playerId: string) => void
   readonly onPlayerTimeCompensationChange: (playerId: string, seconds: TimeCompensationSeconds) => void
@@ -36,6 +37,7 @@ export function MultiplayerLobbyScreen({
   onJoin,
   onStart,
   onObjectCountChange,
+  onArtworkStyleChange,
   onAutoAdvanceChange,
   onKickPlayer,
   onPlayerTimeCompensationChange,
@@ -96,7 +98,9 @@ export function MultiplayerLobbyScreen({
         <button className="text-button multiplayer-back" type="button" onClick={onBack}>← 離開房間</button>
         <p className="eyebrow">WispWise 多人模式</p>
         <h1>{role === 'host' ? '房間已建立' : '等待 Host 開始'}</h1>
-        <p className="room-mode-badge">本房間：{snapshot.objectCount} 物品模式</p>
+        <p className="room-mode-badge">
+          本房間：{snapshot.objectCount} 物品模式 · {snapshot.artworkStyle === 'van-gogh' ? '梵谷風' : '經典風格'}
+        </p>
         <div className="room-code-block"><span>房間代碼</span><strong>{snapshot.roomCode}</strong><small>請其他玩家在手機上輸入此代碼</small></div>
         {role === 'host' && (
           <section className="room-invite" aria-labelledby="room-invite-title">
@@ -174,6 +178,29 @@ export function MultiplayerLobbyScreen({
               <label data-selected={snapshot.objectCount === 7 || undefined}>
                 <input type="radio" name="object-count" value="7" checked={snapshot.objectCount === 7} onChange={() => onObjectCountChange(7)} />
                 <strong>7 物品</strong><small>擴充圖庫</small>
+              </label>
+            </fieldset>
+            <fieldset className="artwork-style-setting">
+              <legend>選擇題目畫面風格</legend>
+              <label data-selected={snapshot.artworkStyle === 'classic' || undefined}>
+                <input
+                  type="radio"
+                  name="artwork-style"
+                  value="classic"
+                  checked={snapshot.artworkStyle === 'classic'}
+                  onChange={() => onArtworkStyleChange('classic')}
+                />
+                <strong>經典風格</strong><small>使用完整的現有題庫</small>
+              </label>
+              <label data-selected={snapshot.artworkStyle === 'van-gogh' || undefined}>
+                <input
+                  type="radio"
+                  name="artwork-style"
+                  value="van-gogh"
+                  checked={snapshot.artworkStyle === 'van-gogh'}
+                  onChange={() => onArtworkStyleChange('van-gogh')}
+                />
+                <strong>梵谷風</strong><small>目前 5 張，其他題目沿用經典圖</small>
               </label>
             </fieldset>
             <label className="auto-advance-setting">

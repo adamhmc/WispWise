@@ -118,6 +118,7 @@ export class GameRoom extends DurableObject<Env> {
       message.type === 'reset-game' ||
       message.type === 'set-auto-advance' ||
       message.type === 'set-object-count' ||
+      message.type === 'set-artwork-style' ||
       message.type === 'set-player-time-compensation' ||
       message.type === 'kick-player'
     ) {
@@ -135,6 +136,13 @@ export class GameRoom extends DurableObject<Env> {
           actorId: attachment.actorId,
           objectCount: message.objectCount,
           questions: selectRoundForObjectCount(message.objectCount, Math.random),
+        })
+      }
+      if (message.type === 'set-artwork-style') {
+        return transitionRoom(room.state, {
+          type: 'set-artwork-style',
+          actorId: attachment.actorId,
+          artworkStyle: message.artworkStyle,
         })
       }
       if (message.type === 'kick-player') {
@@ -278,6 +286,7 @@ export class GameRoom extends DurableObject<Env> {
         message.type === 'reset-game' ||
         message.type === 'set-auto-advance' ||
         message.type === 'set-object-count' ||
+        message.type === 'set-artwork-style' ||
         message.type === 'set-player-time-compensation' ||
         message.type === 'kick-player'
       ) {
@@ -295,6 +304,12 @@ export class GameRoom extends DurableObject<Env> {
                 objectCount: message.objectCount,
                 questions: selectRoundForObjectCount(message.objectCount, Math.random),
               })
+            : message.type === 'set-artwork-style'
+              ? transitionRoom(room.state, {
+                  type: 'set-artwork-style',
+                  actorId: room.state.hostId,
+                  artworkStyle: message.artworkStyle,
+                })
             : message.type === 'kick-player'
               ? transitionRoom(room.state, {
                   type: 'kick-player',

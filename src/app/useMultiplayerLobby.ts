@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GameObjectCount, ObjectId } from '@/domain'
+import type { ArtworkStyle, GameObjectCount, ObjectId } from '@/domain'
 import {
   createClientCommandId,
   type AutoAdvanceSeconds,
@@ -208,6 +208,16 @@ export function useMultiplayerLobby() {
     socketRef.current.send(JSON.stringify({ type: 'set-object-count', objectCount }))
   }
 
+  const setArtworkStyle = (artworkStyle: ArtworkStyle) => {
+    setError(null)
+    if (role !== 'host' || snapshot?.phase !== 'lobby' || snapshot.artworkStyle === artworkStyle) return
+    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      setError('正在等待伺服器連線')
+      return
+    }
+    socketRef.current.send(JSON.stringify({ type: 'set-artwork-style', artworkStyle }))
+  }
+
   const kickPlayer = (playerId: string) => {
     setError(null)
     if (role !== 'host' || !snapshot?.players.some(({ id }) => id === playerId)) return
@@ -322,6 +332,7 @@ export function useMultiplayerLobby() {
     joinRoom,
     startGame,
     setObjectCount,
+    setArtworkStyle,
     setAutoAdvanceEnabled,
     kickPlayer,
     setPlayerTimeCompensation,

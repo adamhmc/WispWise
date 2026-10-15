@@ -13,6 +13,7 @@ const baseProps = {
   onJoin: vi.fn(),
   onStart: vi.fn(),
   onObjectCountChange: vi.fn(),
+  onArtworkStyleChange: vi.fn(),
   onAutoAdvanceChange: vi.fn(),
   onKickPlayer: vi.fn(),
   onPlayerTimeCompensationChange: vi.fn(),
@@ -53,11 +54,12 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
@@ -67,7 +69,7 @@ describe('MultiplayerLobbyScreen', () => {
     )
     expect(screen.getByText('WISP42')).toBeTruthy()
     expect(screen.getByText('Ada')).toBeTruthy()
-    expect(screen.getByText('本房間：5 物品模式')).toBeTruthy()
+    expect(screen.getByText('本房間：5 物品模式 · 經典風格')).toBeTruthy()
     expect(screen.getByLabelText('加入房間 QR Code')).toBeTruthy()
     expect(screen.getByRole('button', { name: '複製加入連結' })).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '開始 10 題挑戰' }).disabled).toBe(false)
@@ -88,11 +90,12 @@ describe('MultiplayerLobbyScreen', () => {
         onObjectCountChange={onObjectCountChange}
         onKickPlayer={onKickPlayer}
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: false, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
@@ -118,11 +121,12 @@ describe('MultiplayerLobbyScreen', () => {
         connectionStatus="connected"
         onPlayerTimeCompensationChange={onPlayerTimeCompensationChange}
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
@@ -142,11 +146,12 @@ describe('MultiplayerLobbyScreen', () => {
         role="player"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],
@@ -174,11 +179,12 @@ describe('MultiplayerLobbyScreen', () => {
         role="player"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 2,
           phase: 'lobby',
           objectCount: 7,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [],
@@ -206,11 +212,12 @@ describe('MultiplayerLobbyScreen', () => {
         connectionStatus="connected"
         onAutoAdvanceChange={onAutoAdvanceChange}
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 1,
           phase: 'lobby',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [],
@@ -223,6 +230,36 @@ describe('MultiplayerLobbyScreen', () => {
     expect(onAutoAdvanceChange).toHaveBeenCalledWith(true)
   })
 
+  it('lets the Host choose a synchronized question artwork style', async () => {
+    const user = userEvent.setup()
+    const onArtworkStyleChange = vi.fn()
+    render(
+      <MultiplayerLobbyScreen
+        {...baseProps}
+        entryMode="create"
+        role="host"
+        connectionStatus="connected"
+        onArtworkStyleChange={onArtworkStyleChange}
+        snapshot={{
+          protocolVersion: 6,
+          roomCode: 'WISP42',
+          revision: 1,
+          phase: 'lobby',
+          objectCount: 5,
+          artworkStyle: 'classic',
+          hostConnected: true,
+          serverNowMs: 0,
+          players: [],
+          autoAdvanceSeconds: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('radio', { name: /梵谷風/ }))
+    expect(onArtworkStyleChange).toHaveBeenCalledWith('van-gogh')
+    expect(screen.getByText(/目前 5 張/)).toBeTruthy()
+  })
+
   it('removes the start action after the room enters play', () => {
     render(
       <MultiplayerLobbyScreen
@@ -231,11 +268,12 @@ describe('MultiplayerLobbyScreen', () => {
         role="host"
         connectionStatus="connected"
         snapshot={{
-          protocolVersion: 5,
+          protocolVersion: 6,
           roomCode: 'WISP42',
           revision: 2,
           phase: 'playing',
           objectCount: 5,
+          artworkStyle: 'classic',
           hostConnected: true,
           serverNowMs: 0,
           players: [{ id: 'p1', nickname: 'Ada', connected: true, score: 0, correctElapsedTotalMs: 0, timeCompensationMs: 0 }],

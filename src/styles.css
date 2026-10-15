@@ -264,7 +264,8 @@ button:focus-visible {
   text-align: center;
 }
 
-.object-count-setting {
+.object-count-setting,
+.artwork-style-setting {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
@@ -273,13 +274,15 @@ button:focus-visible {
   border: 0;
 }
 
-.object-count-setting legend {
+.object-count-setting legend,
+.artwork-style-setting legend {
   grid-column: 1 / -1;
   margin-bottom: 0.15rem;
   font-weight: 900;
 }
 
-.object-count-setting label {
+.object-count-setting label,
+.artwork-style-setting label {
   display: grid;
   gap: 0.25rem;
   padding: 0.9rem 1rem;
@@ -289,19 +292,31 @@ button:focus-visible {
   cursor: pointer;
 }
 
-.object-count-setting label[data-selected] {
+.object-count-setting label[data-selected],
+.artwork-style-setting label[data-selected] {
   border-color: var(--sky-500);
   background: #e9faff;
   box-shadow: 0 5px 0 rgb(16 35 63 / 9%);
 }
 
-.object-count-setting input {
+.object-count-setting input,
+.artwork-style-setting input {
   position: absolute;
   opacity: 0;
 }
 
 .object-count-setting small,
+.artwork-style-setting small,
 .room-mode-badge { color: var(--muted); }
+
+.artwork-style-setting {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 
 .room-mode-badge { margin: -0.5rem 0 1rem; font-weight: 800; }
 

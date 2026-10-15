@@ -55,4 +55,20 @@ describe('QuestionCard', () => {
 
     expect(screen.getByRole('img', { name: /白鬼與綠椅子.*白鬼推著綠椅子/ })).toBeTruthy()
   })
+
+  it('selects the requested Van Gogh artwork and falls back to classic art when unavailable', () => {
+    const styledCard = createCard(
+      { objectId: 'ghost', colorId: 'white' },
+      { objectId: 'chair', colorId: 'green' },
+    )
+    const { rerender } = render(<QuestionCard card={styledCard} artworkStyle="van-gogh" />)
+    expect(screen.getByRole('img', { name: '梵谷風格的白鬼推著綠椅子' })).toBeTruthy()
+
+    const classicOnlyCard = createCard(
+      { objectId: 'ghost', colorId: 'blue' },
+      { objectId: 'bottle', colorId: 'red' },
+    )
+    rerender(<QuestionCard card={classicOnlyCard} artworkStyle="van-gogh" />)
+    expect(screen.getByRole('img', { name: '藍色鬼與紅色瓶子的互動場景' })).toBeTruthy()
+  })
 })

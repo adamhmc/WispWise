@@ -9,11 +9,12 @@ import {
 } from './selectors'
 
 const snapshot = {
-  protocolVersion: 5,
+  protocolVersion: 6,
   roomCode: 'WISP42',
   revision: 2,
   phase: 'results',
   objectCount: 5,
+  artworkStyle: 'classic',
   hostConnected: true,
   serverNowMs: 0,
   players: [],

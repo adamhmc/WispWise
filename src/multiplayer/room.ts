@@ -1,4 +1,11 @@
-import { catalogForObjectCount, type GameObjectCount, type LegalDeckCard, type ObjectId } from '../domain'
+import {
+  DEFAULT_ARTWORK_STYLE,
+  catalogForObjectCount,
+  type ArtworkStyle,
+  type GameObjectCount,
+  type LegalDeckCard,
+  type ObjectId,
+} from '../domain'
 import {
   HOST_RECONNECT_GRACE_MS,
   MAX_ROOM_PLAYERS,
@@ -33,6 +40,7 @@ export interface RoomState {
   readonly hostConnected: boolean
   readonly phase: RoomPhase
   readonly objectCount: GameObjectCount
+  readonly artworkStyle: ArtworkStyle
   readonly questions: readonly LegalDeckCard[]
   readonly players: readonly RoomPlayer[]
   readonly roundIndex: number
@@ -65,6 +73,11 @@ export type RoomCommand =
       readonly type: 'set-auto-advance'
       readonly actorId: string
       readonly seconds: AutoAdvanceSeconds | null
+    }
+  | {
+      readonly type: 'set-artwork-style'
+      readonly actorId: string
+      readonly artworkStyle: ArtworkStyle
     }
   | { readonly type: 'kick-player'; readonly actorId: string; readonly playerId: string; readonly atMs: number }
   | {
@@ -110,6 +123,7 @@ export function createRoom(options: {
     hostConnected: true,
     phase: 'lobby',
     objectCount: options.objectCount,
+    artworkStyle: DEFAULT_ARTWORK_STYLE,
     questions: options.questions,
     players: [],
     roundIndex: -1,
@@ -221,6 +235,11 @@ export function transitionRoom(state: RoomState, command: RoomCommand): RoomTran
       if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change settings')
       if (state.phase !== 'lobby') return rejected(state, 'Settings can only change in the lobby')
       return accepted({ ...state, autoAdvanceSeconds: command.seconds })
+    }
+    case 'set-artwork-style': {
+      if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change settings')
+      if (state.phase !== 'lobby') return rejected(state, 'Settings can only change in the lobby')
+      return accepted({ ...state, artworkStyle: command.artworkStyle })
     }
     case 'set-object-count': {
       if (command.actorId !== state.hostId) return rejected(state, 'Only the host can change settings')
@@ -418,6 +437,7 @@ export function toPublicSnapshot(state: RoomState, nowMs = Date.now()): PublicRo
     revision: state.revision,
     phase: state.phase,
     objectCount: state.objectCount ?? 5,
+    artworkStyle: state.artworkStyle ?? DEFAULT_ARTWORK_STYLE,
     hostConnected: state.hostConnected,
     serverNowMs: nowMs,
     players: state.players.map((player) => ({
